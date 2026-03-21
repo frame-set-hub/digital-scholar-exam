@@ -1,29 +1,29 @@
-# กฎการอัปเดตเอกสาร (Documentation sync)
+# Documentation sync rules
 
-เมื่อมีการ**แก้โค้ด** (หรือโครงสร้างโปรเจกต์) แล้วการเปลี่ยนแปลงนั้น**กระทบ**เนื้อหาในเอกสาร Markdown — ให้**อัปเดตไฟล์ `.md` ที่เกี่ยวข้องในเชิงเดียวกัน** ไม่ปล่อยให้เอกสารอ้างพฤติกรรมเก่า
+When you **change code** (or project layout) and that change **affects** what Markdown docs describe — **update the relevant `.md` files in the same spirit** so docs do not describe old behavior.
 
-## สิ่งที่ถือว่า “กระทบ”
+## What counts as “affects”
 
-- เปลี่ยน flow, API, state, หรือชื่อไฟล์/โฟลเดอร์ที่เอกสารอ้างถึง
-- ย้าย/ลบ/รวมบรรทัดจนช่วงบรรทัดใน [docs/code_analyze.md](./docs/code_analyze.md) ไม่ตรงกับโค้ดจริง
-- เปลี่ยนพฤติกรรมที่ [README.md](./README.md), [execute.md](./execute.md), [docs/planning.md](./docs/planning.md), [docs/architech.md](./docs/architech.md), [docs/api.md](./docs/api.md) อธิบายไว้
+- Changing flows, API, state, or file/folder names that docs reference
+- Moving/deleting/merging lines so line ranges in [docs/code_analyze.md](./docs/code_analyze.md) no longer match the code
+- Changing behavior described in [README.md](./README.md), [execute.md](./execute.md), [docs/planning.md](./docs/planning.md), [docs/architech.md](./docs/architech.md), [docs/api.md](./docs/api.md)
 
-## แนวทางปฏิบัติ
+## Practice
 
-1. ระบุว่าแก้ไขกระทบส่วนใด (เช่น ไม่มี fallback mock บน frontend แล้ว → แก้ทุกที่ที่พูดถึง MOCK / fallback)
-2. อัปเดต **ทุกไฟล์ `.md` ที่เกี่ยวข้อง** ในรอบเดียวกับการ merge การแก้โค้ด (หรือทันทีหลัง merge)
-3. สำหรับ **code map** ใน `docs/code_analyze.md`: ตรวจช่วงบรรทัดกับไฟล์จริงใน repo (เปิดไฟล์หรือใช้เครื่องมือนับบรรทัด) แล้วแก้ตารางให้สอดคล้อง
+1. Identify what the change affects (e.g. no frontend mock fallback anymore → update every mention of MOCK / fallback)
+2. Update **every related `.md` file** in the same merge as the code change (or immediately after)
+3. For the **code map** in `docs/code_analyze.md`: verify line ranges against real files in the repo (open files or use a line counter), then fix tables to match
 
-## แหล่งเอกสารหลัก
+## Primary documentation
 
-| บทบาท | ไฟล์ |
+| Role | File |
 |--------|------|
-| จุดเข้า repo | [README.md](./README.md) |
-| ดัชนีเอกสารเชิงลึก | [docs/README.md](./docs/README.md) |
-| อ่านโค้ดทีละไฟล์ (บรรทัด) | [docs/code_analyze.md](./docs/code_analyze.md) |
-| สถาปัตยกรรม / flow | [docs/architech.md](./docs/architech.md) |
+| Repo entry | [README.md](./README.md) |
+| In-depth index | [docs/README.md](./docs/README.md) |
+| Code walkthrough (lines) | [docs/code_analyze.md](./docs/code_analyze.md) |
+| Architecture / flows | [docs/architech.md](./docs/architech.md) |
 | API | [docs/api.md](./docs/api.md) |
-| แผน / roadmap | [docs/planning.md](./docs/planning.md) |
+| Plans / roadmap | [docs/planning.md](./docs/planning.md) |
 | Progress | [execute.md](./execute.md) |
 
-ไฟล์นี้เป็นกฎโปรเจกต์ — ไม่แทนที่คำอธิบายในแต่ละเอกสาร แต่บังคับให้ซิงค์เมื่อมีการเปลี่ยนที่กระทบเอกสาร
+This file is a project rule — it does not replace each doc’s own explanation, but requires keeping docs in sync when changes affect them.

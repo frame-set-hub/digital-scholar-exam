@@ -1,22 +1,22 @@
 # digital-scholar-exam
 
-ระบบทำแบบทดสอบออนไลน์ — **Frontend:** Vue 3 · **Backend:** Go + Gin + SQLite
+Online exam system — **Frontend:** Vue 3 · **Backend:** Go + Gin + SQLite
 
-## แนวทางเอกสาร 
+## Documentation layout
 
-| ชั้น | หน้าที่ | ไม่ควรทำ |
-|------|---------|-----------|
-| **[README.md](./README.md)** (ไฟล์นี้) | จุดเข้าเดียวของ repo: ภาพรวม, Quick start, แผนที่โฟลเดอร์, ลิงก์ไป `docs/` | คัดลอกเนื้อหายาวจาก `docs/` หรือทวนซ้ำ API แบบเต็ม |
-| **[docs/](./docs/)** | เอกสารเชิงลึก **แหล่งเดียว (canonical)** — สถาปัตยกรรม, flow, แผน, testing, **[API Reference](./docs/api.md)** | — |
-| **`frontend/README.md`** / **`backend/README.md`** | คำสั่งรันแพ็กเกจ + ลิงก์กลับ `docs/` — สำหรับคน `cd` เข้าโฟลเดอร์นั้น | ซ้ำสถาปัตยกรรมหรือตาราง API แบบยาว |
-| **[execute.md](./execute.md)** | Checklist Phase / progress งาน | — |
-| **[RULE.md](./RULE.md)** | กฎอัปเดตเอกสาร `.md` เมื่อการแก้โค้ดกระทบโครงสร้างหรือเนื้อหาที่เอกสารอธิบาย | — |
+| Layer | Purpose | Avoid |
+|------|---------|--------|
+| **[README.md](./README.md)** (this file) | Single entry to the repo: overview, quick start, folder map, links to `docs/` | Pasting long content from `docs/` or duplicating full API tables |
+| **[docs/](./docs/)** | In-depth **canonical** docs — architecture, flows, planning, testing, **[API Reference](./docs/api.md)** | — |
+| **`frontend/README.md`** / **`backend/README.md`** | Run commands for that package + links back to `docs/` — for people who `cd` into that folder | Duplicating architecture or long API tables |
+| **[execute.md](./execute.md)** | Phase / progress checklist | — |
+| **[RULE.md](./RULE.md)** | Rules for updating `.md` when code changes affect structure or behavior described in docs | — |
 
-แนวทางนี้สอดคล้องกับโปรเจกต์ monorepo ทั่วไป: **หน้าแรกของ repo = นำทาง**, รายละเอียดอยู่ใน `docs/`, แพ็กเกจย่อยมี README บางๆ
+This matches common monorepo practice: **repo home = navigation**, details live in `docs/`, subpackages have short READMEs.
 
 ## Quick start
 
-เปิด **สองเทอร์มินัล** (หรือรัน backend ก่อน แล้วค่อย frontend)
+Open **two terminals** (or run the backend first, then the frontend)
 
 **Backend** (port 8080):
 
@@ -24,14 +24,15 @@
 cd backend && go run ./cmd/api
 ```
 
-**Frontend** (port 5173 — proxy `/api` ไป backend ตาม `API_PROXY_TARGET` ใน `frontend/.env`):
+**Frontend** (port 5173 — proxies `/api` to the backend per `API_PROXY_TARGET` in `frontend/.env`):
 
 ```bash
 cd frontend
-cp .env.example .env   # ครั้งแรก — .env ถูก gitignore
+cp .env.example .env   # first time — .env is gitignored
 npm install && npm run dev
 ```
 
+<<<<<<< HEAD
 รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` ส่งคำตอบด้วย `POST /api/submit` และหน้า Leaderboard ดึง `GET /api/leaderboard` (ต้องรัน backend ให้พร้อม)
 
 ### ข้อมูล mock สำหรับทดสอบ Leaderboard
@@ -46,25 +47,33 @@ npm install && npm run dev
 | **ลบผลการสอบทั้งหมด** (ล้าง Leaderboard / รีเซ็ตก่อนลองใหม่) | [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql` |
 
 รัน mock ซ้ำจะ INSERT เพิ่มเรื่อยๆ — ถ้าอยากเริ่มว่างก่อนแทรก mock ให้รัน **clear** ก่อน
+=======
+Run **both** — the app loads questions via `GET /api/questions` and submits with `POST /api/submit` only (the backend must be running).
+>>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
 
-## เอกสาร (อ่านต่อ)
+## Documentation (read more)
 
-| หัวข้อ | ลิงก์ |
+| Topic | Link |
 |--------|------|
-| ดัชนีเอกสารทั้งหมด | [docs/README.md](./docs/README.md) |
-| API (endpoint + JSON) | [docs/api.md](./docs/api.md) |
-| สถาปัตยกรรม & stack | [docs/architech.md](./docs/architech.md) |
-| Flow + diagram | [docs/architech.md](./docs/architech.md) |
-| อ่านโค้ดทีละไฟล์ (บรรทัด) | [docs/code_analyze.md](./docs/code_analyze.md) |
-| แผนอนาคต & roadmap | [docs/planning.md](./docs/planning.md) |
+| Full documentation index | [docs/README.md](./docs/README.md) |
+| API (endpoints + JSON) | [docs/api.md](./docs/api.md) |
+| Architecture & stack | [docs/architech.md](./docs/architech.md) |
+| Flow + diagrams | [docs/architech.md](./docs/architech.md) |
+| Code walkthrough (by line) | [docs/code_analyze.md](./docs/code_analyze.md) |
+| Future plans & roadmap | [docs/planning.md](./docs/planning.md) |
 | Testing | [docs/testing.md](./docs/testing.md) |
-| Progress / Phase | [execute.md](./execute.md) |
-| กฎซิงค์เอกสารกับโค้ด | [RULE.md](./RULE.md) |
+| Progress / phases | [execute.md](./execute.md) |
+| Doc–code sync rules | [RULE.md](./RULE.md) |
 
-## โครงสร้าง repo
+## Repository layout
 
-| โฟลเดอร์ | คำอธิบาย |
+| Folder | Description |
 |----------|----------|
 | [`frontend/`](./frontend/) | Vue 3 + Vite + Pinia + Tailwind |
+<<<<<<< HEAD
 | [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) · SQL ช่วยทดสอบ: [`mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql), [`clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) |
 | [`docs/`](./docs/) | เอกสารออกแบบและ API reference |
+=======
+| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) |
+| [`docs/`](./docs/) | Design docs and API reference |
+>>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)

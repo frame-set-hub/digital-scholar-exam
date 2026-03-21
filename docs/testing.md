@@ -1,64 +1,70 @@
 # Testing Report (Frontend + Backend)
 
-## สารบัญ
+## Table of contents
 
 - [Testing Report (Frontend + Backend)](#testing-report-frontend--backend)
-  - [สารบัญ](#สารบัญ)
-  - [สถานะปัจจุบัน](#สถานะปัจจุบัน)
-  - [Backend — Go / Usecase](#backend--go--usecase)
-  - [Backend — Integration / API (แนะนำเติม)](#backend--integration--api-แนะนำเติม)
+  - [Table of contents](#table-of-contents)
+  - [Current status](#current-status)
+  - [Backend — Go / Use case](#backend--go--use-case)
+  - [Backend — Integration / API (recommended next)](#backend--integration--api-recommended-next)
   - [Frontend — Unit / Component](#frontend--unit--component)
-  - [แนวทาง CI](#แนวทาง-ci)
+  - [CI guidance](#ci-guidance)
 
-## สถานะปัจจุบัน
+## Current status
 
-| วันที่ | รอบ / รายการ | Frontend | Backend | หมายเหตุ |
+| Date | Run / item | Frontend | Backend | Notes |
 |--------|----------------|----------|---------|----------|
-| — | รันครั้งล่าสุด (กรอกมือ) | รอเพิ่ม Vitest | `go test ./...` (ดู [`../backend/README.md`](../backend/README.md)) | อัปเดตเมื่อรัน CI |
+| — | Last manual run | Vitest pending | `go test ./...` (see [`../backend/README.md`](../backend/README.md)) | Update when CI runs |
 
-## Backend — Go / Usecase
+## Backend — Go / Use case
 
-| รายการ | คำสั่ง / ตำแหน่ง | สถานะ |
+| Item | Command / location | Status |
 |--------|------------------|--------|
+<<<<<<< HEAD
 | Unit test usecase | `cd backend && go test ./... -count=1` | มี — `internal/usecase/exam_usecase_test.go` |
 | เนื้อหาที่ทดสอบ | `ScoreAnswers` + `SubmitExam` + `GetLeaderboard` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — รวม **edge cases** ด้านล่าง | มี |
 | เครื่องมือ | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
+=======
+| Use case unit tests | `cd backend && go test ./... -count=1` | Yes — `internal/usecase/exam_usecase_test.go` |
+| What is tested | `ScoreAnswers` + `SubmitExam` with **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — includes **edge cases** below | Yes |
+| Tools | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
+>>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
 
 **Edge cases (`internal/usecase/exam_usecase_test.go`):**
 
-| กรณี | สิ่งที่ยืนยัน |
+| Case | Assertion |
 |------|----------------|
-| ตอบถูกหมด | `ScoreAnswers` + `SubmitExam` — `score == total` (คะแนนเต็ม) |
-| ตอบผิดหมด | `ScoreAnswers` + `SubmitExam` — `score == 0` |
-| ส่งคำตอบไม่ครบข้อ | ข้อสอบ 2 ข้อ ส่งมาแค่ 1 ข้อ — คำนวณได้ ไม่ error; ข้อที่ไม่ส่งไม่ได้คะแนน (`ScoreAnswers` / `SubmitExam` partial) |
-| ส่ง option ID ไม่ถูกต้อง / ไม่มีจริง | ไม่ panic / ไม่ error; ข้อนั้นไม่ได้คะแนน (`ScoreAnswers` + `SubmitExam` ศูนย์คะแนน) |
-| คีย์คำตอบที่ไม่ตรงข้อสอบ | คีย์แปลกๆ ถูกละเว้นเมื่อนับคะแนน (`WrongKeysIgnoredForUnknownQuestion`) |
+| All correct | `ScoreAnswers` + `SubmitExam` — `score == total` (full score) |
+| All wrong | `ScoreAnswers` + `SubmitExam` — `score == 0` |
+| Incomplete answers | 2 questions, submit 1 — scoring works, no error; unanswered rows get no points (`ScoreAnswers` / `SubmitExam` partial) |
+| Invalid / non-existent option ID | No panic / no error; that question scores zero (`ScoreAnswers` + `SubmitExam` zero) |
+| Answer keys for unknown questions | Odd keys ignored when scoring (`WrongKeysIgnoredForUnknownQuestion`) |
 
-**ตัวอย่างรัน:**
+**Example run:**
 
 ```bash
 cd backend
 go test ./... -count=1 -v
 ```
 
-## Backend — Integration / API (แนะนำเติม)
+## Backend — Integration / API (recommended next)
 
-| ชุดทดสอบ | เครื่องมือ | สถานะ |
+| Suite | Tool | Status |
 |----------|------------|--------|
-| Handler + DB in-memory หรือ temp SQLite | `httptest`, GORM `:memory:` | รอเพิ่ม (optional) |
-| E2E ยิง `GET/POST` กับ server จริง | curl / Playwright API | เมื่อมี pipeline / สแตกทดสอบ E2E |
+| Handler + DB in-memory or temp SQLite | `httptest`, GORM `:memory:` | Pending (optional) |
+| E2E against real server | curl / Playwright API | When pipeline / E2E stack exists |
 
 ## Frontend — Unit / Component
 
-| ชุดทดสอบ | เครื่องมือ | สถานะ |
+| Suite | Tool | Status |
 |----------|------------|--------|
-| Pinia `examStore` (คำนวณคะแนน, reset) | Vitest | รอเพิ่ม |
-| `ExamView` / `ResultView` | Vitest + Vue Test Utils | รอเพิ่ม |
+| Pinia `examStore` (score logic, reset) | Vitest | Pending |
+| `ExamView` / `ResultView` | Vitest + Vue Test Utils | Pending |
 
-เมื่อเพิ่มแล้วให้บันทึกคำสั่ง (เช่น `cd frontend && npm run test`) และผล pass/fail ในตารางด้านบน
+When added, record commands (e.g. `cd frontend && npm run test`) and pass/fail in the table above.
 
-## แนวทาง CI
+## CI guidance
 
 - Job 1: `cd backend && go test ./...`
-- Job 2: `cd frontend && npm ci && npm run build` (และ `npm run test` เมื่อมี)
-- แยก coverage รายงานตามโฟลเดอร์ `backend/` / `frontend/`
+- Job 2: `cd frontend && npm ci && npm run build` (and `npm run test` when present)
+- Split coverage reports under `backend/` / `frontend/`
