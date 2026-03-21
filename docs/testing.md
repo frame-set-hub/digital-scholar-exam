@@ -21,8 +21,18 @@
 | รายการ | คำสั่ง / ตำแหน่ง | สถานะ |
 |--------|------------------|--------|
 | Unit test usecase | `cd backend && go test ./... -count=1` | มี — `internal/usecase/exam_usecase_test.go` |
-| เนื้อหาที่ทดสอบ | `ScoreAnswers` (เต็ม / ศูนย์ / บางส่วน), `SubmitExam` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) | มี |
+| เนื้อหาที่ทดสอบ | `ScoreAnswers` + `SubmitExam` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — รวม **edge cases** ด้านล่าง | มี |
 | เครื่องมือ | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
+
+**Edge cases (`internal/usecase/exam_usecase_test.go`):**
+
+| กรณี | สิ่งที่ยืนยัน |
+|------|----------------|
+| ตอบถูกหมด | `ScoreAnswers` + `SubmitExam` — `score == total` (คะแนนเต็ม) |
+| ตอบผิดหมด | `ScoreAnswers` + `SubmitExam` — `score == 0` |
+| ส่งคำตอบไม่ครบข้อ | ข้อสอบ 2 ข้อ ส่งมาแค่ 1 ข้อ — คำนวณได้ ไม่ error; ข้อที่ไม่ส่งไม่ได้คะแนน (`ScoreAnswers` / `SubmitExam` partial) |
+| ส่ง option ID ไม่ถูกต้อง / ไม่มีจริง | ไม่ panic / ไม่ error; ข้อนั้นไม่ได้คะแนน (`ScoreAnswers` + `SubmitExam` ศูนย์คะแนน) |
+| คีย์คำตอบที่ไม่ตรงข้อสอบ | คีย์แปลกๆ ถูกละเว้นเมื่อนับคะแนน (`WrongKeysIgnoredForUnknownQuestion`) |
 
 **ตัวอย่างรัน:**
 

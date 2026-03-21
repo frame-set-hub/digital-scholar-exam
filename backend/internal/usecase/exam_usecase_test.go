@@ -106,3 +106,57 @@ func TestExam_SubmitExam_ZeroScore(t *testing.T) {
 	mq.AssertExpectations(t)
 	mr.AssertExpectations(t)
 }
+
+// --- Edge cases: full / zero / missing answers / invalid option IDs ---
+
+func TestScoreAnswers_MissingAnswers_OnlySubmittedRowsGraded(t *testing.T) {
+	// ข้อสอบ 2 ข้อ ส่งมาแค่ข้อเดียว (ถูก) — ข้อที่ไม่ส่งถือว่าไม่ตรงเฉลย ไม่ panic
+	two := sampleQuestions()[:2]
+	ans := map[string]string{"1": "1c"}
+	assert.Equal(t, 1, usecase.ScoreAnswers(two, ans))
+}
+
+func TestScoreAnswers_InvalidOptionID_NoPoint(t *testing.T) {
+	qs := []models.Question{{ID: 1, CorrectOptionID: "1c"}}
+	ans := map[string]string{"1": "not-a-real-option-id"}
+	assert.Equal(t, 0, usecase.ScoreAnswers(qs, ans))
+}
+
+func TestExam_SubmitExam_MissingAnswers_PartialScore(t *testing.T) {
+	mq := new(MockQuestionStore)
+	mr := new(MockExamResultStore)
+	two := sampleQuestions()[:2]
+	mq.On("GetQuestions", mock.Anything).Return(two, nil)
+	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
+		return r.CandidateName == "Partial" && r.Score == 1 && r.Total == 2
+	})).Return(nil)
+
+	ex := usecase.NewExam(mq, mr)
+	res, err := ex.SubmitExam(context.Background(), "Partial", map[string]string{"1": "1c"})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, res.Score)
+	assert.Equal(t, 2, res.Total)
+
+	mq.AssertExpectations(t)
+	mr.AssertExpectations(t)
+}
+
+func TestExam_SubmitExam_InvalidOptionIDs_NoErrorZeroScore(t *testing.T) {
+	mq := new(MockQuestionStore)
+	mr := new(MockExamResultStore)
+	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
+		return r.CandidateName == "BadIds" && r.Score == 0 && r.Total == 3
+	})).Return(nil)
+
+	ex := usecase.NewExam(mq, mr)
+	res, err := ex.SubmitExam(context.Background(), "BadIds", map[string]string{
+		"1": "garbage-uuid", "2": "not-real", "3": "x",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, res.Score)
+	assert.Equal(t, 3, res.Total)
+
+	mq.AssertExpectations(t)
+	mr.AssertExpectations(t)
+}
