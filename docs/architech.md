@@ -1,79 +1,79 @@
 # Architecture & Tech Stack (Full Stack)
 
-## สารบัญ
+## Table of contents
 
 - [Architecture \& Tech Stack (Full Stack)](#architecture--tech-stack-full-stack)
-  - [สารบัญ](#สารบัญ)
-  - [ภาพรวม](#ภาพรวม)
-  - [Flow การทำงานของโปรแกรม (ผู้ใช้ → ระบบ)](#flow-การทำงานของโปรแกรม-ผู้ใช้--ระบบ)
-  - [Flow usecase ฝั่ง Backend](#flow-usecase-ฝั่ง-backend)
-  - [Flow การไหลของข้อมูล (Data flow)](#flow-การไหลของข้อมูล-data-flow)
-  - [สรุปเทียบสัญญา API (`api.md`)](#สรุปเทียบสัญญา-api-apimd)
-  - [Diagram — ความสัมพันธ์ Frontend](#diagram--ความสัมพันธ์-frontend)
-  - [Diagram — ลำดับคำขอ Backend](#diagram--ลำดับคำขอ-backend)
-  - [Tech Stack ฝั่ง Frontend](#tech-stack-ฝั่ง-frontend)
-  - [Tech Stack ฝั่ง Backend](#tech-stack-ฝั่ง-backend)
-  - [เหตุผลที่เลือก Vue 3 + Pinia](#เหตุผลที่เลือก-vue-3--pinia)
-  - [เหตุผลที่เลือก Go + Gin + SQLite](#เหตุผลที่เลือก-go--gin--sqlite)
-  - [โครงสร้างโฟลเดอร์ Frontend](#โครงสร้างโฟลเดอร์-frontend)
-  - [โครงสร้างโฟลเดอร์ Backend (Pragmatic Clean Architecture)](#โครงสร้างโฟลเดอร์-backend-pragmatic-clean-architecture)
-  - [การสื่อสารระหว่าง FE / BE](#การสื่อสารระหว่าง-fe--be)
+  - [Table of contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Application flow (user → system)](#application-flow-user--system)
+  - [Backend use case flow](#backend-use-case-flow)
+  - [Data flow](#data-flow)
+  - [API contract summary (`api.md`)](#api-contract-summary-apimd)
+  - [Diagram — Frontend relationships](#diagram--frontend-relationships)
+  - [Diagram — Backend request sequence](#diagram--backend-request-sequence)
+  - [Frontend tech stack](#frontend-tech-stack)
+  - [Backend tech stack](#backend-tech-stack)
+  - [Why Vue 3 + Pinia](#why-vue-3--pinia)
+  - [Why Go + Gin + SQLite](#why-go--gin--sqlite)
+  - [Frontend folder layout](#frontend-folder-layout)
+  - [Backend folder layout (Pragmatic Clean Architecture)](#backend-folder-layout-pragmatic-clean-architecture)
+  - [Frontend and backend communication](#frontend-and-backend-communication)
 
-## ภาพรวม
+## Overview
 
-ระบบประกอบด้วย **SPA ฝั่ง Frontend** (Vue 3) สำหรับผู้สอบกรอกชื่อ ทำข้อสอบแบบเลือกคำตอบเดียว และดูผลคะแนน และ **API ฝั่ง Backend** (Go + Gin) ที่จัดเก็บข้อสอบ/เฉลยใน SQLite รับการส่งข้อสอบ คำนวณคะแนนที่ฝั่งเซิร์ฟเวอร์ และบันทึกผลการสอบ
+The system consists of a **Frontend SPA** (Vue 3) where candidates enter a name, take a single-choice exam, and view their score, and a **Backend API** (Go + Gin) that stores questions/answers in SQLite, accepts submissions, computes scores on the server, and persists exam results.
 
-ชั้น Frontend แยก UI (Vue), การนำทาง (Vue Router) และ state ชั่วคราว (Pinia) ชั้น Backend แยก HTTP (Handler), กฎธุรกิจ (Usecase), และการเข้าถึงข้อมูล (Repository + GORM)
+The frontend separates UI (Vue), routing (Vue Router), and transient state (Pinia). The backend separates HTTP (Handler), business rules (Use case), and data access (Repository + GORM).
 
-**อ่านโค้ดทีละไฟล์และเลขบรรทัด:** [code_analyze.md](./code_analyze.md)  
-**Endpoint และตัวอย่าง JSON:** [api.md](./api.md)
+**File-by-file reading with line numbers:** [code_analyze.md](./code_analyze.md)  
+**Endpoints and JSON examples:** [api.md](./api.md)
 
-## Flow การทำงานของโปรแกรม (ผู้ใช้ → ระบบ)
+## Application flow (user → system)
 
-1. ผู้ใช้เปิดเว็บ → Vite โหลด bundle จาก `main.js` → แสดง `App.vue` → `RouterView` ตาม path
-2. Path `/` โหลด `ExamView` → `onMounted` เรียก **`GET /api/questions`** (ผ่าน `examStore.loadQuestions()`)
-3. **สำเร็จ:** เก็บรายการคำถามใน Pinia  
-   **ล้มเหลว:** เคลียร์ `questions`, ตั้ง `loadError`, แสดงข้อความแจ้งเตือน — ไม่มีข้อสอบในเครื่อง
-4. ผู้ใช้กรอกชื่อและเลือกคำตอบ → `setAnswer` อัปเดต `answers`
-5. กดส่ง → ตรวจชื่อและครบทุกข้อ → **`POST /api/submit`** พร้อม `{ candidateName, answers }` → ได้ `score` จากเซิร์ฟเวอร์ → นำทางไป `/result`
-6. `ResultView` แสดงชื่อและคะแนน → Retake → `resetExam()` (เคลียร์ชื่อ/คำตอบ/คะแนน กลับ `/` — ไม่เคลียร์รายการข้อเพื่อลดการเรียก GET ซ้ำ)
+1. User opens the site → Vite loads the bundle from `main.js` → `App.vue` → `RouterView` for the path
+2. Path `/` loads `ExamView` → `onMounted` calls **`GET /api/questions`** (via `examStore.loadQuestions()`)
+3. **Success:** questions stored in Pinia  
+   **Failure:** clear `questions`, set `loadError`, show a message — no offline question set
+4. User enters name and selects answers → `setAnswer` updates `answers`
+5. Submit → validate name and all questions answered → **`POST /api/submit`** with `{ candidateName, answers }` → receive `score` from server → navigate to `/result`
+6. `ResultView` shows name and score → Retake → `resetExam()` (clears name/answers/score, returns to `/` — does not clear questions to avoid redundant GETs)
 
-**Troubleshooting DevTools / การเรียก API ซ้ำ:** ดู [api.md](./api.md)
+**DevTools / duplicate API calls:** see [api.md](./api.md)
 
-## Flow usecase ฝั่ง Backend
+## Backend use case flow
 
-| ขั้น | ผู้รับผิดชอบ | สิ่งที่เกิดขึ้น |
+| Step | Owner | What happens |
 |------|----------------|------------------|
-| HTTP | `handler.ExamHTTP` | รับ request, bind JSON, สถานะ HTTP |
-| กฎธุรกิจ | `usecase.Exam` | `GetQuestions`: ดึงจาก store → แปลงเป็น DTO **ไม่ส่งเฉลย** |
-| | | `SubmitExam`: ดึงคำถามพร้อมเฉลยจาก DB → `ScoreAnswers` → สร้าง `ExamResult` (รวม JSON คำตอบ) → `SaveExamResult` |
-| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite |
+| HTTP | `handler.ExamHTTP` | Accept request, bind JSON, HTTP status |
+| Business rules | `usecase.Exam` | `GetQuestions`: load from store → map to DTO **without answers** |
+| | | `SubmitExam`: load questions with answers from DB → `ScoreAnswers` → build `ExamResult` (including answer JSON) → `SaveExamResult` |
+| Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite |
 
-## Flow การไหลของข้อมูล (Data flow)
+## Data flow
 
-**อ่านข้อสอบ (GET)**
+**Load questions (GET)**
 
-- **DB:** ตาราง `questions` + `options` (มี `correct_option_id` ที่ข้อ — ไม่ส่งออก API)
-- **Repository** → **Usecase** ตัดเฉลยออก → **Handler** → JSON `{ "questions": [...] }`
-- **Frontend** เก็บใน `examStore.questions` สำหรับแสดงและเก็บ `answers`
+- **DB:** `questions` + `options` tables (`correct_option_id` per question — not exposed via API)
+- **Repository** → **Use case** strips answers → **Handler** → JSON `{ "questions": [...] }`
+- **Frontend** stores in `examStore.questions` for display and `answers`
 
-**ส่งข้อสอบ (POST)**
+**Submit (POST)**
 
-- **Frontend** ส่ง `candidateName` และ `answers` (คีย์เป็น string ของ question id)
-- **Usecase** โหลดชุดคำถาม+เฉลยจาก DB เหมือนเดิม → เปรียบเทียบกับ `answers` → ได้ `score`, `total`
-- **DB:** `INSERT` ลง `exam_results` (ชื่อ, คะแนน, รวมข้อ, `answers_json`)
+- **Frontend** sends `candidateName` and `answers` (keys are string question ids)
+- **Use case** loads questions + answers from DB as before → compares to `answers` → `score`, `total`
+- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`)
 
-## สรุปเทียบสัญญา API (`api.md`)
+## API contract summary (`api.md`)
 
-| หัวข้อ | สถานะ |
+| Topic | Status |
 |--------|--------|
-| `GET /api/questions` ไม่ส่ง `correctOptionId` | ตรง — DTO ใน usecase ไม่มีฟิลด์เฉลย |
-| `POST /api/submit` body `candidateName`, `answers` (คีย์ string) | ตรง |
-| Response `{ candidateName, score, total }` | ตรง — หน้าผลใช้ `score` และ `totalQuestions` (= จำนวนข้อที่โหลด) ซึ่งควรสอดคล้อง `total` |
+| `GET /api/questions` does not send `correctOptionId` | OK — use case DTO has no answer fields |
+| `POST /api/submit` body `candidateName`, `answers` (string keys) | OK |
+| Response `{ candidateName, score, total }` | OK — result view uses `score` and `totalQuestions` (= loaded count), which should align with `total` |
 
-รายละเอียดและตัวอย่าง: [api.md](./api.md)
+Details and examples: [api.md](./api.md)
 
-## Diagram — ความสัมพันธ์ Frontend
+## Diagram — Frontend relationships
 
 ```mermaid
 flowchart LR
@@ -96,7 +96,7 @@ flowchart LR
   R -->|resetExam| S
 ```
 
-## Diagram — ลำดับคำขอ Backend
+## Diagram — Backend request sequence
 
 ```mermaid
 sequenceDiagram
@@ -126,48 +126,48 @@ sequenceDiagram
   H-->>C: JSON
 ```
 
-## Tech Stack ฝั่ง Frontend
+## Frontend tech stack
 
-| เทคโนโลยี | บทบาท |
+| Technology | Role |
 |-----------|--------|
 | **Vue 3** | UI framework — Composition API + `<script setup>` |
-| **Vite** | build และ dev server |
-| **Tailwind CSS** | สไตล์ utility-first, responsive, mobile-first |
-| **Vue Router** | เส้นทางหน้าทำข้อสอบ (IT 10-1) กับหน้าผล (IT 10-2) |
-| **Pinia** | state ชื่อผู้สอบ, คำถาม, คำตอบ, คะแนน — โหลดข้อสอบจาก API เท่านั้น |
+| **Vite** | Build and dev server |
+| **Tailwind CSS** | Utility-first styling, responsive, mobile-first |
+| **Vue Router** | Routes for exam (IT 10-1) and result (IT 10-2) |
+| **Pinia** | State: candidate name, questions, answers, score — loads questions from API only |
 
-## Tech Stack ฝั่ง Backend
+## Backend tech stack
 
-| เทคโนโลยี | บทบาท |
+| Technology | Role |
 |-----------|--------|
-| **Go** | ภาษาและ runtime |
+| **Go** | Language and runtime |
 | **Gin** | HTTP router / middleware |
-| **GORM** | ORM สำหรับ SQLite |
-| **SQLite** | ฐานข้อมูลไฟล์เดียว (`backend/data/exam.db`) — zero extra install |
-| **testify** | `assert` + `mock` สำหรับ unit test usecase |
+| **GORM** | ORM for SQLite |
+| **SQLite** | Single-file DB (`backend/data/exam.db`) — zero extra install |
+| **testify** | `assert` + `mock` for use case unit tests |
 
-## เหตุผลที่เลือก Vue 3 + Pinia
+## Why Vue 3 + Pinia
 
-- **Vue 3** มี Composition API ที่จัดกลุ่ม logic ตาม feature ได้ชัด
-- **Pinia** แยก state ของ **exam** ออกจากคอมโพเนนต์ ทำให้ `ExamView` / `ResultView` โฟกัสการแสดงผลและ event
+- **Vue 3** Composition API groups logic by feature clearly
+- **Pinia** keeps **exam** state out of components so `ExamView` / `ResultView` focus on UI and events
 
-## เหตุผลที่เลือก Go + Gin + SQLite
+## Why Go + Gin + SQLite
 
-- **Go** deploy ง่าย binary เดียว, concurrency ชัดเจน
-- **Gin** เป็นที่นิยมใน community, middleware ครบสำหรับ REST
-- **SQLite** เหมาะกับโปรเจกต์เรียนรู้/สาธิต — ไม่ต้องติดตั้งเซิร์ฟเวอร์ DB แยก; ย้ายไป PostgreSQL ได้เมื่อต้องการ scale
-- โครงสร้าง **Pragmatic Clean Architecture**: handler → usecase → repository — ทดสอบ usecase ด้วย mock repository ได้โดยไม่ต้องแตะ SQLite
+- **Go** — simple single-binary deploy, clear concurrency
+- **Gin** — widely used, middleware fits REST
+- **SQLite** — good for learning/demos — no separate DB server; can move to PostgreSQL when scaling
+- **Pragmatic Clean Architecture**: handler → use case → repository — test use cases with mock repositories without touching SQLite
 
-## โครงสร้างโฟลเดอร์ Frontend
+## Frontend folder layout
 
-- `frontend/src/views/` — หน้าจอหลักตาม route
-- `frontend/src/components/` — คอมโพเนนต์ย่อยที่ใช้ซ้ำ
+- `frontend/src/views/` — main screens per route
+- `frontend/src/components/` — reusable subcomponents
 - `frontend/src/stores/` — Pinia (`examStore`)
-- `frontend/src/router/` — เส้นทางและ meta (title)
-- `frontend/src/api/` — เรียก HTTP (`client.js`)
-- `frontend/src/assets/` — CSS global และ Tailwind theme
+- `frontend/src/router/` — routes and meta (title)
+- `frontend/src/api/` — HTTP (`client.js`)
+- `frontend/src/assets/` — global CSS and Tailwind theme
 
-## โครงสร้างโฟลเดอร์ Backend (Pragmatic Clean Architecture)
+## Backend folder layout (Pragmatic Clean Architecture)
 
 ```
 backend/
@@ -178,17 +178,17 @@ backend/
 │   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers
 │   └── handler/             # Gin: GET /api/questions, POST /api/submit
 ├── go.mod
-└── data/exam.db             # สร้างเมื่อรัน (อยู่ใน .gitignore)
+└── data/exam.db             # created at run time (in .gitignore)
 ```
 
-- **Handler** รับ/ส่ง JSON ไม่มี business logic หนัก
-- **Usecase** รวม `GetQuestions` (map เป็น DTO ไม่ส่งเฉลย), `SubmitExam` (ดึงเฉลยจาก DB → คำนวณคะแนน → `SaveExamResult`)
-- **Repository** คุยกับ GORM/SQLite เท่านั้น
+- **Handler** — JSON in/out, minimal business logic
+- **Use case** — `GetQuestions` (map to DTO without answers), `SubmitExam` (load answers from DB → score → `SaveExamResult`)
+- **Repository** — GORM/SQLite only
 
-รายละเอียด endpoint และตัวอย่าง JSON: [api.md](./api.md)
+Endpoint details and JSON examples: [api.md](./api.md)
 
-## การสื่อสารระหว่าง FE / BE
+## Frontend and backend communication
 
-สรุปสั้น: API ฐาน `http://localhost:8080` — ดูตารางและ payload ฉบับเต็มใน [api.md](./api.md)
+In short: API base `http://localhost:8080` — full tables and payloads in [api.md](./api.md)
 
-แผนงานและ roadmap เพิ่มเติม: [planning.md](./planning.md)
+More planning and roadmap: [planning.md](./planning.md)
