@@ -36,7 +36,7 @@ go test ./... -count=1 -v
 | ชุดทดสอบ | เครื่องมือ | สถานะ |
 |----------|------------|--------|
 | Handler + DB in-memory หรือ temp SQLite | `httptest`, GORM `:memory:` | รอเพิ่ม (optional) |
-| E2E ยิง `GET/POST` กับ server จริง | curl / Playwright API | รอ Phase 6 |
+| E2E ยิง `GET/POST` กับ server จริง | curl / Playwright API | เมื่อมี pipeline / สแตกทดสอบ E2E |
 
 ## Frontend — Unit / Component
 

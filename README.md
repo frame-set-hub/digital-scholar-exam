@@ -10,6 +10,7 @@
 | **[docs/](./docs/)** | เอกสารเชิงลึก **แหล่งเดียว (canonical)** — สถาปัตยกรรม, flow, แผน, testing, **[API Reference](./docs/api.md)** | — |
 | **`frontend/README.md`** / **`backend/README.md`** | คำสั่งรันแพ็กเกจ + ลิงก์กลับ `docs/` — สำหรับคน `cd` เข้าโฟลเดอร์นั้น | ซ้ำสถาปัตยกรรมหรือตาราง API แบบยาว |
 | **[execute.md](./execute.md)** | Checklist Phase / progress งาน | — |
+| **[RULE.md](./RULE.md)** | กฎอัปเดตเอกสาร `.md` เมื่อการแก้โค้ดกระทบโครงสร้างหรือเนื้อหาที่เอกสารอธิบาย | — |
 
 แนวทางนี้สอดคล้องกับโปรเจกต์ monorepo ทั่วไป: **หน้าแรกของ repo = นำทาง**, รายละเอียดอยู่ใน `docs/`, แพ็กเกจย่อยมี README บางๆ
 
@@ -23,11 +24,15 @@
 cd backend && go run ./cmd/api
 ```
 
-**Frontend** (port 5173):
+**Frontend** (port 5173 — proxy `/api` ไป backend ตาม `API_PROXY_TARGET` ใน `frontend/.env`):
 
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend
+cp .env.example .env   # ครั้งแรก — .env ถูก gitignore
+npm install && npm run dev
 ```
+
+รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` และส่งคำตอบด้วย `POST /api/submit` เท่านั้น (ต้องรัน backend ให้พร้อม)
 
 ## เอกสาร (อ่านต่อ)
 
@@ -36,10 +41,12 @@ cd frontend && npm install && npm run dev
 | ดัชนีเอกสารทั้งหมด | [docs/README.md](./docs/README.md) |
 | API (endpoint + JSON) | [docs/api.md](./docs/api.md) |
 | สถาปัตยกรรม & stack | [docs/architech.md](./docs/architech.md) |
-| Flow โค้ด + diagram | [docs/code_analyze.md](./docs/code_analyze.md) |
-| แผนอนาคต & Phase 6 | [docs/planning.md](./docs/planning.md) |
+| Flow + diagram | [docs/architech.md](./docs/architech.md) |
+| อ่านโค้ดทีละไฟล์ (บรรทัด) | [docs/code_analyze.md](./docs/code_analyze.md) |
+| แผนอนาคต & roadmap | [docs/planning.md](./docs/planning.md) |
 | Testing | [docs/testing.md](./docs/testing.md) |
 | Progress / Phase | [execute.md](./execute.md) |
+| กฎซิงค์เอกสารกับโค้ด | [RULE.md](./RULE.md) |
 
 ## โครงสร้าง repo
 

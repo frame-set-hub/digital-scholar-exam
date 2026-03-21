@@ -1,14 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
 const exam = useExamStore()
-const { candidateName, questions, answers } = storeToRefs(exam)
+const { candidateName, questions, answers, loadState, loadError } = storeToRefs(exam)
 
 const formError = ref('')
 
+onMounted(() => {
+  exam.loadQuestions()
+})
+
 const allAnswered = computed(() => {
+  if (questions.value.length === 0) return false
   return questions.value.every((q) => answers.value[q.id] != null)
 })
 
@@ -20,7 +25,7 @@ function selectOption(questionId, optionId) {
   exam.setAnswer(questionId, optionId)
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   formError.value = ''
   const name = candidateName.value.trim()
   if (!name) {
@@ -31,7 +36,14 @@ function handleSubmit() {
     formError.value = 'กรุณาตอบให้ครบทุกข้อ'
     return
   }
-  exam.submitExam()
+  try {
+    await exam.submitExam()
+  } catch (e) {
+    formError.value =
+      e?.message?.includes('fetch') || e?.name === 'TypeError'
+        ? 'ส่งข้อสอบไม่สำเร็จ — ตรวจสอบว่า backend รันที่ :8080 และลองใหม่'
+        : e?.message || 'ส่งข้อสอบไม่สำเร็จ'
+  }
 }
 
 /** คลาสเดียวกันทุกข้อ — choice card (min-h, padding, โครงสร้าง indicator + ข้อความ) */
@@ -69,6 +81,13 @@ function optionTextClasses(questionId, optionId) {
   <div class="relative flex min-h-screen flex-col overflow-x-hidden bg-background font-sans text-on-surface">
     <!-- ไม่มี Navbar / เมนูปลอม — เริ่มที่เนื้อหาหลักตาม ui-example -->
     <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-10 pb-28 sm:px-6 sm:py-12">
+      <p
+        v-if="loadError"
+        class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        role="status"
+      >
+        {{ loadError }}
+      </p>
       <!-- Header + Candidate Name -->
       <div class="mb-12">
         <div class="flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -107,8 +126,19 @@ function optionTextClasses(questionId, optionId) {
         </div>
       </div>
 
+      <div
+        v-if="loadState === 'loading'"
+        class="flex flex-col items-center justify-center gap-4 py-24 text-secondary"
+      >
+        <span
+          class="inline-block h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          aria-hidden="true"
+        />
+        <p class="text-sm font-medium">กำลังโหลดข้อสอบจากเซิร์ฟเวอร์…</p>
+      </div>
+
       <!-- Questions: v-for จาก Store — ทุกข้อใช้ choice card สไตล์เดียวกัน -->
-      <div class="space-y-12">
+      <div v-else class="space-y-12">
         <section
           v-for="(q, index) in questions"
           :key="q.id"
@@ -143,13 +173,14 @@ function optionTextClasses(questionId, optionId) {
       </div>
 
       <!-- Submit -->
-      <div class="mt-16 flex flex-col items-center gap-6">
+      <div v-if="loadState !== 'loading'" class="mt-16 flex flex-col items-center gap-6">
         <p v-if="formError" class="text-center text-sm font-medium text-red-600" role="alert">
           {{ formError }}
         </p>
         <button
           type="button"
-          class="group relative w-full max-w-md overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-4 text-xl font-bold text-on-primary shadow-xl shadow-indigo-500/20 transition-all active:scale-[0.98] hover:shadow-indigo-500/35"
+          :disabled="questions.length === 0"
+          class="group relative w-full max-w-md overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-4 text-xl font-bold text-on-primary shadow-xl shadow-indigo-500/20 transition-all enabled:active:scale-[0.98] enabled:hover:shadow-indigo-500/35 disabled:cursor-not-allowed disabled:opacity-50"
           @click="handleSubmit"
         >
           <span class="relative z-10 flex items-center justify-center gap-3">

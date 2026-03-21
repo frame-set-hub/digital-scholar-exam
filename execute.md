@@ -9,7 +9,7 @@
 - [x] Phase 3: Backend Initialization (Golang, Gin, SQLite, Pragmatic Clean Architecture)
 - [x] Phase 4: API & Database Implementation (Mock Questions, Submit Exam)
 - [x] Phase 5: Unit Testing Setup (testify/mock สำหรับ Usecase — คำนวณคะแนน)
-- [ ] Phase 6: FE & BE Integration
+- [x] Phase 6: FE & BE Integration
 
 ## Notes
 
@@ -18,7 +18,7 @@
 | 3 | `cmd/api/main.go`, `internal/{models,repository,usecase,handler}`, GORM + SQLite, DI |
 | 4 | Repository: `GetQuestions`, `SaveExamResult` — Usecase: `GetQuestions`, `SubmitExam` + `ScoreAnswers` — Handler: `GET/POST` ผูก usecase |
 | 5 | `exam_usecase_test.go`: mock repository, เทสคะแนนเต็ม / ศูนย์ / บางส่วน + `SubmitExam` |
-| 6 | _ยังไม่ทำ — ต่อ API จาก Vue_ |
+| 6 | Frontend: `GET /api/questions` + `POST /api/submit` (Vite proxy `/api` → :8080) — ไม่มี mock ข้อสอบใน bundle |
 
 ## รัน Backend (dev)
 

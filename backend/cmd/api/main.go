@@ -33,7 +33,7 @@ func run() error {
 	if err := repository.AutoMigrate(db); err != nil {
 		return err
 	}
-	if err := repository.SeedQuestionsIfEmpty(db); err != nil {
+	if err := repository.EnsureSeedQuestions(db); err != nil {
 		return err
 	}
 

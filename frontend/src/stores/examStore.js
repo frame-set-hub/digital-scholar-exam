@@ -1,54 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import router from '@/router'
-
-/** Mock ข้อสอบ — แทนที่ด้วยข้อมูลจาก API ภายหลัง */
-export const MOCK_QUESTIONS = [
-  {
-    id: 1,
-    prompt: 'ข้อใดต่างจากข้ออื่น',
-    subtitle: null,
-    options: [
-      { id: '1a', letter: 'A', text: '3' },
-      { id: '1b', letter: 'B', text: '5' },
-      { id: '1c', letter: 'C', text: '9' },
-      { id: '1d', letter: 'D', text: '11' },
-    ],
-    correctOptionId: '1c',
-  },
-  {
-    id: 2,
-    prompt: 'X + 2 = 4',
-    subtitle: 'จงหาค่า X',
-    options: [
-      { id: '2a', letter: 'A', text: '1' },
-      { id: '2b', letter: 'B', text: '2' },
-      { id: '2c', letter: 'C', text: '3' },
-      { id: '2d', letter: 'D', text: '4' },
-    ],
-    correctOptionId: '2b',
-  },
-  {
-    id: 3,
-    prompt: '2 + 2 = ?',
-    subtitle: null,
-    options: [
-      { id: '3a', letter: 'A', text: '3' },
-      { id: '3b', letter: 'B', text: '4' },
-      { id: '3c', letter: 'C', text: '5' },
-      { id: '3d', letter: 'D', text: '6' },
-    ],
-    correctOptionId: '3b',
-  },
-]
+import { apiUrl, fetchJSON } from '@/api/client'
 
 export const useExamStore = defineStore('exam', () => {
   const candidateName = ref('')
-  const questions = ref([...MOCK_QUESTIONS])
-  /** คีย์ = id ข้อ, ค่า = id ตัวเลือกที่เลือก */
+  const questions = ref([])
   const answers = ref({})
-  /** null = ยังไม่ส่ง, ตัวเลข = คะแนนหลังส่ง */
   const score = ref(null)
+
+  const loadState = ref('idle') // idle | loading | error
+  const loadError = ref(null)
+
+  /** กันโหลดซ้ำพร้อมกัน / ลดจำนวน request เพื่อให้ DevTools ไม่ทิ้ง response ของ request เก่าเยอะเกินไป */
+  let loadQuestionsInflight = null
 
   const totalQuestions = computed(() => questions.value.length)
 
@@ -56,16 +21,60 @@ export const useExamStore = defineStore('exam', () => {
     answers.value = { ...answers.value, [questionId]: optionId }
   }
 
-  function computeScore() {
-    let correct = 0
-    for (const q of questions.value) {
-      if (answers.value[q.id] === q.correctOptionId) correct += 1
+  /**
+   * โหลดข้อสอบจาก API เท่านั้น: GET /api/questions
+   * @param {{ force?: boolean }} [options] — force=true บังคับดึงใหม่
+   */
+  async function loadQuestions(options = {}) {
+    const force = options.force === true
+
+    if (!force && questions.value.length > 0) {
+      return
     }
-    return correct
+
+    if (loadQuestionsInflight) {
+      return loadQuestionsInflight
+    }
+
+    loadState.value = 'loading'
+    loadError.value = null
+
+    loadQuestionsInflight = (async () => {
+      try {
+        const data = await fetchJSON(apiUrl('/api/questions'))
+        questions.value = data.questions ?? []
+        loadState.value = 'idle'
+      } catch (e) {
+        questions.value = []
+        loadError.value =
+          e?.message ||
+          'ไม่สามารถโหลดข้อสอบจากเซิร์ฟเวอร์ — ตรวจสอบว่า backend รันที่ :8080 และ proxy ใน Vite ถูกต้อง'
+        loadState.value = 'error'
+      } finally {
+        loadQuestionsInflight = null
+      }
+    })()
+
+    return loadQuestionsInflight
   }
 
-  function submitExam() {
-    score.value = computeScore()
+  function answersForSubmit() {
+    const out = {}
+    for (const [k, v] of Object.entries(answers.value)) {
+      out[String(k)] = v
+    }
+    return out
+  }
+
+  async function submitExam() {
+    const data = await fetchJSON(apiUrl('/api/submit'), {
+      method: 'POST',
+      body: JSON.stringify({
+        candidateName: candidateName.value.trim(),
+        answers: answersForSubmit(),
+      }),
+    })
+    score.value = data.score
     router.push({ name: 'result' })
   }
 
@@ -82,7 +91,10 @@ export const useExamStore = defineStore('exam', () => {
     answers,
     score,
     totalQuestions,
+    loadState,
+    loadError,
     setAnswer,
+    loadQuestions,
     submitExam,
     resetExam,
   }
