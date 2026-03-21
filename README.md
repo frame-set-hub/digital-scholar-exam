@@ -32,7 +32,20 @@ cp .env.example .env   # first time — .env is gitignored
 npm install && npm run dev
 ```
 
-Run **both** — the app loads questions via `GET /api/questions` and submits with `POST /api/submit` only (the backend must be running).
+Run **both** — the app loads questions via `GET /api/questions`, submits with `POST /api/submit`, and the Leaderboard page fetches `GET /api/leaderboard` (the backend must be running).
+
+### Mock data for testing the Leaderboard
+
+The SQLite database lives at `backend/data/exam.db` (created when the API runs — listed in `.gitignore`).
+
+**Stop the backend first** (to avoid DB file locking) then use one of the scripts from the repo root:
+
+| Action | File | Command |
+|--------|------|---------|
+| Insert sample rows into `exam_results` | [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql` |
+| **Delete all exam results** (clear leaderboard / reset before retrying) | [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql` |
+
+Running mock repeatedly will keep INSERTing rows — to start fresh before inserting mock data, run **clear** first.
 
 ## Documentation (read more)
 
@@ -53,5 +66,5 @@ Run **both** — the app loads questions via `GET /api/questions` and submits wi
 | Folder | Description |
 |----------|----------|
 | [`frontend/`](./frontend/) | Vue 3 + Vite + Pinia + Tailwind |
-| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) |
+| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) · Test SQL scripts: [`mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql), [`clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) |
 | [`docs/`](./docs/) | Design docs and API reference |

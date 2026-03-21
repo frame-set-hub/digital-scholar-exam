@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"digital-scholar-exam/backend/internal/models"
 	"digital-scholar-exam/backend/internal/usecase"
@@ -30,6 +31,12 @@ type MockExamResultStore struct {
 func (m *MockExamResultStore) SaveExamResult(ctx context.Context, r *models.ExamResult) error {
 	args := m.Called(ctx, r)
 	return args.Error(0)
+}
+
+func (m *MockExamResultStore) GetLeaderboard(ctx context.Context, limit int) ([]models.ExamResult, error) {
+	args := m.Called(ctx, limit)
+	v, _ := args.Get(0).([]models.ExamResult)
+	return v, args.Error(1)
 }
 
 func sampleQuestions() []models.Question {
@@ -158,5 +165,26 @@ func TestExam_SubmitExam_InvalidOptionIDs_NoErrorZeroScore(t *testing.T) {
 	assert.Equal(t, 3, res.Total)
 
 	mq.AssertExpectations(t)
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	t1 := time.Date(2026, 3, 24, 14, 15, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Sophia", Score: 5, Total: 5, CreatedAt: t0},
+		{CandidateName: "Alex", Score: 4, Total: 5, CreatedAt: t1},
+	}, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, err := ex.GetLeaderboard(context.Background(), 0)
+	assert.NoError(t, err)
+	assert.Len(t, entries, 2)
+	assert.Equal(t, 1, entries[0].Rank)
+	assert.Equal(t, "Sophia", entries[0].CandidateName)
+	assert.Equal(t, 5, entries[0].Score)
+	assert.Equal(t, t0.UTC().Format(time.RFC3339), entries[0].CreatedAt)
+
 	mr.AssertExpectations(t)
 }

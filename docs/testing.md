@@ -21,7 +21,7 @@
 | Item | Command / location | Status |
 |--------|------------------|--------|
 | Use case unit tests | `cd backend && go test ./... -count=1` | Yes — `internal/usecase/exam_usecase_test.go` |
-| What is tested | `ScoreAnswers` + `SubmitExam` with **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — includes **edge cases** below | Yes |
+| What is tested | `ScoreAnswers` + `SubmitExam` + `GetLeaderboard` with **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — includes **edge cases** below | Yes |
 | Tools | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
 
 **Edge cases (`internal/usecase/exam_usecase_test.go`):**

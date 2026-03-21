@@ -27,6 +27,10 @@ const strokeDashoffset = computed(() => {
 function retake() {
   exam.resetExam()
 }
+
+function goLeaderboard() {
+  router.push({ name: 'leaderboard' })
+}
 </script>
 
 <template>
@@ -101,7 +105,15 @@ function retake() {
               </div>
             </div>
 
-            <div class="mt-10 w-full max-w-sm">
+            <div class="mt-10 w-full max-w-sm space-y-3">
+              <button
+                type="button"
+                class="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-primary/30 bg-surface-container-lowest py-4 px-8 font-display text-lg font-bold text-primary shadow-sm transition-transform active:scale-95"
+                @click="goLeaderboard"
+              >
+                <span class="material-symbols-outlined">leaderboard</span>
+                View Leaderboard
+              </button>
               <button
                 type="button"
                 class="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-br from-primary to-primary-container py-5 px-8 font-display text-lg font-bold text-on-primary shadow-lg shadow-indigo-500/20 transition-transform active:scale-95"

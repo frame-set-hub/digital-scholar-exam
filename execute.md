@@ -10,6 +10,7 @@ Use this file to track project progress (supports opening a new session) — **u
 - [x] Phase 4: API & Database Implementation (Mock Questions, Submit Exam)
 - [x] Phase 5: Unit Testing Setup (testify/mock for use case — score calculation)
 - [x] Phase 6: FE & BE Integration
+- [x] Phase 7: Leaderboard UI & API (Fetch top scores, Sorting, Routing)
 
 ## Notes
 
@@ -19,6 +20,7 @@ Use this file to track project progress (supports opening a new session) — **u
 | 4 | Repository: `GetQuestions`, `SaveExamResult` — Use case: `GetQuestions`, `SubmitExam` + `ScoreAnswers` — Handler: `GET/POST` wired to use case |
 | 5 | `exam_usecase_test.go`: mock repository, tests for full score / zero / partial + `SubmitExam` |
 | 6 | Frontend: `GET /api/questions` + `POST /api/submit` (Vite proxy `/api` → :8080) — no bundled mock questions |
+| 7 | `GET /api/leaderboard` — sort `exam_results` by score (high→low) then `created_at` (earliest first); FE route `/leaderboard` + Pinia `loadLeaderboard()` |
 
 ## Run backend (dev)
 
@@ -27,7 +29,7 @@ cd backend
 go run ./cmd/api
 ```
 
-- API: `http://localhost:8080` — `GET /api/questions`, `POST /api/submit`
+- API: `http://localhost:8080` — `GET /api/questions`, `POST /api/submit`, `GET /api/leaderboard`
 - SQLite: `backend/data/exam.db` (created automatically)
 
 ## Documentation

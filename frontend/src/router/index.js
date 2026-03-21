@@ -16,6 +16,12 @@ const router = createRouter({
       meta: { title: 'IT 10-2 — Digital Scholar' },
     },
     {
+      path: '/leaderboard',
+      name: 'leaderboard',
+      component: () => import('@/views/LeaderboardView.vue'),
+      meta: { title: 'Leaderboard — Digital Scholar' },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

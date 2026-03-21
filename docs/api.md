@@ -8,6 +8,13 @@ Base URL (dev): `http://localhost:8080`
 |--------|------|-----------|
 | `GET` | `/api/questions` | Question list + options **without** `correctOptionId` |
 | `POST` | `/api/submit` | Accept answers → score on server → persist `exam_results` |
+| `GET` | `/api/leaderboard` | Ranked candidates from `exam_results` (highest score first; ties broken by earliest submission) — does not include `answers` |
+
+## GET `/api/leaderboard`
+
+- Query (optional): `limit` — max number of entries (default 20, max 20)
+- Example response: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
+
 
 ## POST `/api/submit`
 

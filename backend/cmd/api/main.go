@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,9 +21,12 @@ func main() {
 }
 
 func run() error {
-	dataDir := filepath.Join(".", "data")
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+	dataDir, err := resolveDataDir()
+	if err != nil {
 		return err
+	}
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return fmt.Errorf("create data dir %q: %w", dataDir, err)
 	}
 	dsn := filepath.Join(dataDir, "exam.db")
 
@@ -52,6 +56,27 @@ func run() error {
 		addr = ":" + v
 	}
 	return r.Run(addr)
+}
+
+// resolveDataDir picks where SQLite lives: $DATABASE_DIR if set, else <process working dir>/data.
+// Using an absolute path avoids silent failures when cwd is wrong or stale (e.g. shell still in a deleted folder).
+func resolveDataDir() (string, error) {
+	if v := os.Getenv("DATABASE_DIR"); v != "" {
+		abs, err := filepath.Abs(v)
+		if err != nil {
+			return "", fmt.Errorf("DATABASE_DIR: %w", err)
+		}
+		return abs, nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory (cd into backend/ or set DATABASE_DIR): %w", err)
+	}
+	abs, err := filepath.Abs(filepath.Join(wd, "data"))
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
 }
 
 func corsMiddleware() gin.HandlerFunc {

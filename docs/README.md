@@ -1,12 +1,12 @@
 # Documentation index
 
-This folder is the project’s **canonical in-depth documentation** — it does not duplicate the root README, which is the entry point and quick start.
+This folder is the project's **canonical in-depth documentation** — it does not duplicate the root README, which is the entry point and quick start.
 
 | Document | Contents |
 |--------|---------|
 | [architech.md](./architech.md) | Tech stack, flows / use cases / data, diagrams |
 | [api.md](./api.md) | **API Reference** — endpoints, JSON examples |
-| [code_analyze.md](./code_analyze.md) | File-by-file reading guide — imports, entrypoints, line ranges |
+| [code_analyze.md](./code_analyze.md) | File-by-file reading guide — imports, entrypoints, line ranges (includes `LeaderboardView` / `GET /api/leaderboard`) |
 | [planning.md](./planning.md) | Future plans, long-term goals (scale / deploy), FE/BE alignment |
 | [testing.md](./testing.md) | Testing approach and run logs |
 

@@ -17,6 +17,7 @@
 
 - **Frontend:** Full flow — Pinia loads questions from API (`GET /api/questions`) only
 - **Backend:** APIs `GET /api/questions`, `POST /api/submit`, SQLite + automatic seed — see [`api.md`](./api.md)
+- **Phase 7:** Added Leaderboard system using data from the `ExamResult` table, sorted by score (`Score DESC`) and time (`CreatedAt ASC`) to display candidate rankings — API `GET /api/leaderboard`, page `/leaderboard` in Vue
 
 ## Short-term goals
 
@@ -25,11 +26,11 @@
 
 ## Long-term goals
 
-This document sets direction when the system grows beyond “single machine / single user” — not an immediate implementation spec, but helps decide stack and sequencing later.
+This document sets direction when the system grows beyond "single machine / single user" — not an immediate implementation spec, but helps decide stack and sequencing later.
 
 ### Scale and load
 
-- **Horizontal:** Keep the API **stateless** (sessions not tied to one machine’s memory) so multiple instances can sit behind a load balancer
+- **Horizontal:** Keep the API **stateless** (sessions not tied to one machine's memory) so multiple instances can sit behind a load balancer
 - **Database:** SQLite fits dev/demo — for high concurrent writes or backup/HA, target **PostgreSQL** (or MySQL); consider read replicas if read-heavy
 - **Bottleneck:** Usually DB and query/transaction design, not Go/Vue themselves
 
@@ -69,14 +70,15 @@ Summary: **Go + Gin + GORM + Vue** can stay the base for a long — what changes
 |--------|-------------|
 | Entry | `backend/cmd/api/main.go` |
 | DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed when empty |
-| API | `GET /api/questions` — no answers in response; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` and persist `exam_results` |
+| API | `GET /api/questions` — no answers in response; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` and persist `exam_results`; `GET /api/leaderboard` — ranked candidates (no raw answers) |
 | Layers | `handler` → `usecase` → `repository` — see [architech.md](./architech.md) |
 
 ## Frontend and backend integration (current)
 
-- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` call the API
+- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` call the API
 - Load: `GET /api/questions` — on failure show error; no local question set
 - Submit: `POST /api/submit` — score from server only
+- Leaderboard: `GET /api/leaderboard` — `LeaderboardView` calls `loadLeaderboard()` displaying entries from `exam_results` (no raw answers)
 - Production: set `VITE_API_BASE_URL` or same-host reverse proxy — see `frontend/.env.example`
 
 ## UX and security

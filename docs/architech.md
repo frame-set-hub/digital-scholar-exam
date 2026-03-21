@@ -36,7 +36,8 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
    **Failure:** clear `questions`, set `loadError`, show a message — no offline question set
 4. User enters name and selects answers → `setAnswer` updates `answers`
 5. Submit → validate name and all questions answered → **`POST /api/submit`** with `{ candidateName, answers }` → receive `score` from server → navigate to `/result`
-6. `ResultView` shows name and score → Retake → `resetExam()` (clears name/answers/score, returns to `/` — does not clear questions to avoid redundant GETs)
+6. `ResultView` shows name and score → **View Leaderboard** → `/leaderboard` → `LeaderboardView` calls **`GET /api/leaderboard`** (`loadLeaderboard`) or **Retake** → `resetExam()`
+7. `LeaderboardView` button **Back to Exam** → `resetExam()` (clears name/answers/score/leaderboard, returns to `/` — does not clear questions to avoid redundant `GET /api/questions`)
 
 **DevTools / duplicate API calls:** see [api.md](./api.md)
 
@@ -47,7 +48,8 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 | HTTP | `handler.ExamHTTP` | Accept request, bind JSON, HTTP status |
 | Business rules | `usecase.Exam` | `GetQuestions`: load from store → map to DTO **without answers** |
 | | | `SubmitExam`: load questions with answers from DB → `ScoreAnswers` → build `ExamResult` (including answer JSON) → `SaveExamResult` |
-| Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite |
+| | | `GetLeaderboard`: load `ExamResult` from store → map to `LeaderboardEntryDTO` (does not include `answers`) |
+| Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite — `GetLeaderboard` sorts by `score DESC`, `created_at ASC` |
 
 ## Data flow
 
@@ -63,6 +65,12 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 - **Use case** loads questions + answers from DB as before → compares to `answers` → `score`, `total`
 - **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`)
 
+**Leaderboard (GET)**
+
+- **DB:** reads `exam_results` — sorted by highest score first; ties broken by earliest `created_at`
+- **Repository** → **Use case** assigns `rank` and strips deep data → **Handler** → JSON `{ "entries": [...] }`
+- **Frontend** stores in `examStore.leaderboard` for `LeaderboardView`
+
 ## API contract summary (`api.md`)
 
 | Topic | Status |
@@ -70,6 +78,7 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 | `GET /api/questions` does not send `correctOptionId` | OK — use case DTO has no answer fields |
 | `POST /api/submit` body `candidateName`, `answers` (string keys) | OK |
 | Response `{ candidateName, score, total }` | OK — result view uses `score` and `totalQuestions` (= loaded count), which should align with `total` |
+| `GET /api/leaderboard` → `{ entries: LeaderboardEntryDTO[] }` | OK — ranked from `exam_results` sorted by score descending then `created_at` ascending |
 
 Details and examples: [api.md](./api.md)
 
@@ -80,20 +89,29 @@ flowchart LR
   subgraph views [Views]
     E[ExamView]
     R[ResultView]
+    L[LeaderboardView]
   end
   subgraph store [Pinia examStore]
     CN[candidateName]
     Q[questions]
     A[answers]
     S[score]
+    LB[leaderboard]
   end
   E -->|loadQuestions GET| Q
   E -->|setAnswer| A
   E -->|submitExam| S
   S --> R
+  R -->|goLeaderboard| L
+  L -->|loadLeaderboard GET| LB
   R -->|resetExam| CN
   R -->|resetExam| A
   R -->|resetExam| S
+  R -->|resetExam| LB
+  L -->|resetExam| CN
+  L -->|resetExam| A
+  L -->|resetExam| S
+  L -->|resetExam| LB
 ```
 
 ## Diagram — Backend request sequence
@@ -124,6 +142,15 @@ sequenceDiagram
   R->>DB: INSERT exam_results
   U-->>H: SubmitResponse
   H-->>C: JSON
+
+  C->>H: GET /api/leaderboard
+  H->>U: GetLeaderboard(limit)
+  U->>R: GetLeaderboard(limit)
+  R->>DB: SELECT exam_results ORDER BY score DESC, created_at ASC LIMIT n
+  DB-->>R: rows
+  R-->>U: []ExamResult
+  U-->>H: []LeaderboardEntryDTO
+  H-->>C: JSON entries
 ```
 
 ## Frontend tech stack
@@ -133,8 +160,8 @@ sequenceDiagram
 | **Vue 3** | UI framework — Composition API + `<script setup>` |
 | **Vite** | Build and dev server |
 | **Tailwind CSS** | Utility-first styling, responsive, mobile-first |
-| **Vue Router** | Routes for exam (IT 10-1) and result (IT 10-2) |
-| **Pinia** | State: candidate name, questions, answers, score — loads questions from API only |
+| **Vue Router** | Routes: `/` (exam), `/result` (score), `/leaderboard` (rankings) |
+| **Pinia** | State: candidate name, questions, answers, score, leaderboard — loads questions and rankings from API only |
 
 ## Backend tech stack
 
@@ -174,16 +201,16 @@ backend/
 ├── cmd/api/main.go          # entry, SQLite path, AutoMigrate, seed, DI, Gin
 ├── internal/
 │   ├── models/              # Question, Option, ExamResult
-│   ├── repository/          # GORM: GetQuestions, SaveExamResult, migrate, seed
-│   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers
-│   └── handler/             # Gin: GET /api/questions, POST /api/submit
+│   ├── repository/          # GORM: GetQuestions, SaveExamResult, GetLeaderboard, migrate, seed
+│   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers, GetLeaderboard
+│   └── handler/             # Gin: GET /api/questions, POST /api/submit, GET /api/leaderboard
 ├── go.mod
 └── data/exam.db             # created at run time (in .gitignore)
 ```
 
 - **Handler** — JSON in/out, minimal business logic
-- **Use case** — `GetQuestions` (map to DTO without answers), `SubmitExam` (load answers from DB → score → `SaveExamResult`)
-- **Repository** — GORM/SQLite only
+- **Use case** — `GetQuestions` (map to DTO without answers), `SubmitExam` (load answers from DB → score → `SaveExamResult`), `GetLeaderboard` (ranked DTO without raw answers)
+- **Repository** — GORM/SQLite only — includes `GetLeaderboard` for reading `exam_results`
 
 Endpoint details and JSON examples: [api.md](./api.md)
 
