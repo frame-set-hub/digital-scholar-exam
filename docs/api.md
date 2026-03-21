@@ -6,19 +6,14 @@ Base URL (dev): `http://localhost:8080`
 
 | Method | Path | Description |
 |--------|------|-----------|
-<<<<<<< HEAD
-| `GET` | `/api/questions` | รายการข้อสอบ + ตัวเลือก **ไม่มี** `correctOptionId` |
-| `POST` | `/api/submit` | รับคำตอบ → คำนวณคะแนนที่เซิร์ฟเวอร์ → บันทึก `exam_results` |
-| `GET` | `/api/leaderboard` | อันดับผู้สอบจาก `exam_results` (คะแนนสูงก่อน, คะแนนเท่ากันคนสอบก่อนอยู่บน) — ไม่ส่ง `answers` |
+| `GET` | `/api/questions` | Question list + options **without** `correctOptionId` |
+| `POST` | `/api/submit` | Accept answers → score on server → persist `exam_results` |
+| `GET` | `/api/leaderboard` | Ranked candidates from `exam_results` (highest score first; ties broken by earliest submission) — does not include `answers` |
 
 ## GET `/api/leaderboard`
 
-- Query (optional): `limit` — จำนวนอันดับสูงสุด (ค่าเริ่มต้น 20, สูงสุด 20)
-- Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
-=======
-| `GET` | `/api/questions` | Question list + options **without** `correctOptionId` |
-| `POST` | `/api/submit` | Accept answers → score on server → persist `exam_results` |
->>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
+- Query (optional): `limit` — max number of entries (default 20, max 20)
+- Example response: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
 
 ## POST `/api/submit`
 

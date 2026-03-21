@@ -20,15 +20,9 @@
 
 | Item | Command / location | Status |
 |--------|------------------|--------|
-<<<<<<< HEAD
-| Unit test usecase | `cd backend && go test ./... -count=1` | มี — `internal/usecase/exam_usecase_test.go` |
-| เนื้อหาที่ทดสอบ | `ScoreAnswers` + `SubmitExam` + `GetLeaderboard` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — รวม **edge cases** ด้านล่าง | มี |
-| เครื่องมือ | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
-=======
 | Use case unit tests | `cd backend && go test ./... -count=1` | Yes — `internal/usecase/exam_usecase_test.go` |
-| What is tested | `ScoreAnswers` + `SubmitExam` with **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — includes **edge cases** below | Yes |
+| What is tested | `ScoreAnswers` + `SubmitExam` + `GetLeaderboard` with **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — includes **edge cases** below | Yes |
 | Tools | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
->>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
 
 **Edge cases (`internal/usecase/exam_usecase_test.go`):**
 

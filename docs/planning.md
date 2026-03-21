@@ -15,14 +15,9 @@
 
 ## Current state
 
-<<<<<<< HEAD
-- **Frontend:** flow ครบ — Pinia โหลดข้อสอบจาก API (`GET /api/questions`) เท่านั้น
-- **Backend:** มี API `GET /api/questions`, `POST /api/submit`, SQLite + seed อัตโนมัติ — ดู [`api.md`](./api.md)
-- **Phase 7:** เพิ่มระบบ Leaderboard โดยใช้ข้อมูลจากตาราง `ExamResult` เรียงลำดับตามคะแนน (`Score DESC`) และเวลา (`CreatedAt ASC`) เพื่อแสดงผลอันดับผู้เข้าสอบ — API `GET /api/leaderboard`, หน้า `/leaderboard` ใน Vue
-=======
 - **Frontend:** Full flow — Pinia loads questions from API (`GET /api/questions`) only
 - **Backend:** APIs `GET /api/questions`, `POST /api/submit`, SQLite + automatic seed — see [`api.md`](./api.md)
->>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
+- **Phase 7:** Added Leaderboard system using data from the `ExamResult` table, sorted by score (`Score DESC`) and time (`CreatedAt ASC`) to display candidate rankings — API `GET /api/leaderboard`, page `/leaderboard` in Vue
 
 ## Short-term goals
 
@@ -31,11 +26,11 @@
 
 ## Long-term goals
 
-This document sets direction when the system grows beyond “single machine / single user” — not an immediate implementation spec, but helps decide stack and sequencing later.
+This document sets direction when the system grows beyond "single machine / single user" — not an immediate implementation spec, but helps decide stack and sequencing later.
 
 ### Scale and load
 
-- **Horizontal:** Keep the API **stateless** (sessions not tied to one machine’s memory) so multiple instances can sit behind a load balancer
+- **Horizontal:** Keep the API **stateless** (sessions not tied to one machine's memory) so multiple instances can sit behind a load balancer
 - **Database:** SQLite fits dev/demo — for high concurrent writes or backup/HA, target **PostgreSQL** (or MySQL); consider read replicas if read-heavy
 - **Bottleneck:** Usually DB and query/transaction design, not Go/Vue themselves
 
@@ -74,30 +69,17 @@ Summary: **Go + Gin + GORM + Vue** can stay the base for a long — what changes
 | Item | Detail |
 |--------|-------------|
 | Entry | `backend/cmd/api/main.go` |
-<<<<<<< HEAD
-| DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed เมื่อยังไม่มีข้อ |
-| API | `GET /api/questions` — ข้อสอบไม่รวมเฉลย; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` และบันทึก `exam_results`; `GET /api/leaderboard` — อันดับผู้สอบ (ไม่ส่งคำตอบดิบ) |
-| ชั้นโค้ด | `handler` → `usecase` → `repository` — ดู [architech.md](./architech.md) |
-=======
 | DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed when empty |
-| API | `GET /api/questions` — no answers in response; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` and persist `exam_results` |
+| API | `GET /api/questions` — no answers in response; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` and persist `exam_results`; `GET /api/leaderboard` — ranked candidates (no raw answers) |
 | Layers | `handler` → `usecase` → `repository` — see [architech.md](./architech.md) |
->>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
 
 ## Frontend and backend integration (current)
 
-<<<<<<< HEAD
-- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` เรียก API
-- โหลดข้อสอบ: `GET /api/questions` — ล้มเหลวแสดงข้อความ error ไม่มีชุดข้อสอบในเครื่อง
-- ส่งข้อสอบ: `POST /api/submit` — คะแนนจากเซิร์ฟเวอร์เท่านั้น
-- กระดานอันดับ: `GET /api/leaderboard` — `LeaderboardView` เรียก `loadLeaderboard()` แสดงรายการจาก `exam_results` (ไม่ส่งคำตอบดิบ)
-- Production: ตั้ง `VITE_API_BASE_URL` หรือ reverse proxy ร่วม host — ดู `frontend/.env.example`
-=======
-- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` call the API
+- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` call the API
 - Load: `GET /api/questions` — on failure show error; no local question set
 - Submit: `POST /api/submit` — score from server only
+- Leaderboard: `GET /api/leaderboard` — `LeaderboardView` calls `loadLeaderboard()` displaying entries from `exam_results` (no raw answers)
 - Production: set `VITE_API_BASE_URL` or same-host reverse proxy — see `frontend/.env.example`
->>>>>>> 59f10ee (Refactor documentation for clarity and consistency; update execute.md, README.md, RULE.md, and various API references to enhance user understanding and maintainability.)
 
 ## UX and security
 
