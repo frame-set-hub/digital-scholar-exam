@@ -36,7 +36,8 @@
    **ล้มเหลว:** เคลียร์ `questions`, ตั้ง `loadError`, แสดงข้อความแจ้งเตือน — ไม่มีข้อสอบในเครื่อง
 4. ผู้ใช้กรอกชื่อและเลือกคำตอบ → `setAnswer` อัปเดต `answers`
 5. กดส่ง → ตรวจชื่อและครบทุกข้อ → **`POST /api/submit`** พร้อม `{ candidateName, answers }` → ได้ `score` จากเซิร์ฟเวอร์ → นำทางไป `/result`
-6. `ResultView` แสดงชื่อและคะแนน → Retake → `resetExam()` (เคลียร์ชื่อ/คำตอบ/คะแนน กลับ `/` — ไม่เคลียร์รายการข้อเพื่อลดการเรียก GET ซ้ำ)
+6. `ResultView` แสดงชื่อและคะแนน → **View Leaderboard** → `/leaderboard` → `LeaderboardView` เรียก **`GET /api/leaderboard`** (`loadLeaderboard`) หรือ **Retake** → `resetExam()`
+7. `LeaderboardView` ปุ่ม **Back to Exam** → `resetExam()` (เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับ `/` — ไม่เคลียร์รายการข้อเพื่อลดการเรียก `GET /api/questions` ซ้ำ)
 
 **Troubleshooting DevTools / การเรียก API ซ้ำ:** ดู [api.md](./api.md)
 
@@ -47,7 +48,8 @@
 | HTTP | `handler.ExamHTTP` | รับ request, bind JSON, สถานะ HTTP |
 | กฎธุรกิจ | `usecase.Exam` | `GetQuestions`: ดึงจาก store → แปลงเป็น DTO **ไม่ส่งเฉลย** |
 | | | `SubmitExam`: ดึงคำถามพร้อมเฉลยจาก DB → `ScoreAnswers` → สร้าง `ExamResult` (รวม JSON คำตอบ) → `SaveExamResult` |
-| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite |
+| | | `GetLeaderboard`: ดึง `ExamResult` จาก store → map เป็น `LeaderboardEntryDTO` (ไม่ส่ง `answers`) |
+| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite — `GetLeaderboard` เรียง `score DESC`, `created_at ASC` |
 
 ## Flow การไหลของข้อมูล (Data flow)
 
@@ -63,6 +65,12 @@
 - **Usecase** โหลดชุดคำถาม+เฉลยจาก DB เหมือนเดิม → เปรียบเทียบกับ `answers` → ได้ `score`, `total`
 - **DB:** `INSERT` ลง `exam_results` (ชื่อ, คะแนน, รวมข้อ, `answers_json`)
 
+**กระดานอันดับ (GET)**
+
+- **DB:** อ่าน `exam_results` — เรียงคะแนนสูงสุดก่อน ถ้าคะแนนเท่ากันให้ `created_at` เก่าก่อน (สอบก่อนอยู่บน)
+- **Repository** → **Usecase** ใส่ `rank` และตัดข้อมูลลึก → **Handler** → JSON `{ "entries": [...] }`
+- **Frontend** เก็บใน `examStore.leaderboard` สำหรับ `LeaderboardView`
+
 ## สรุปเทียบสัญญา API (`api.md`)
 
 | หัวข้อ | สถานะ |
@@ -70,6 +78,7 @@
 | `GET /api/questions` ไม่ส่ง `correctOptionId` | ตรง — DTO ใน usecase ไม่มีฟิลด์เฉลย |
 | `POST /api/submit` body `candidateName`, `answers` (คีย์ string) | ตรง |
 | Response `{ candidateName, score, total }` | ตรง — หน้าผลใช้ `score` และ `totalQuestions` (= จำนวนข้อที่โหลด) ซึ่งควรสอดคล้อง `total` |
+| `GET /api/leaderboard` → `{ entries: LeaderboardEntryDTO[] }` | ตรง — อันดับจาก `exam_results` เรียงคะแนนมากไปน้อย แล้ว `created_at` เก่าก่อน |
 
 รายละเอียดและตัวอย่าง: [api.md](./api.md)
 
@@ -80,20 +89,29 @@ flowchart LR
   subgraph views [Views]
     E[ExamView]
     R[ResultView]
+    L[LeaderboardView]
   end
   subgraph store [Pinia examStore]
     CN[candidateName]
     Q[questions]
     A[answers]
     S[score]
+    LB[leaderboard]
   end
   E -->|loadQuestions GET| Q
   E -->|setAnswer| A
   E -->|submitExam| S
   S --> R
+  R -->|goLeaderboard| L
+  L -->|loadLeaderboard GET| LB
   R -->|resetExam| CN
   R -->|resetExam| A
   R -->|resetExam| S
+  R -->|resetExam| LB
+  L -->|resetExam| CN
+  L -->|resetExam| A
+  L -->|resetExam| S
+  L -->|resetExam| LB
 ```
 
 ## Diagram — ลำดับคำขอ Backend
@@ -124,6 +142,15 @@ sequenceDiagram
   R->>DB: INSERT exam_results
   U-->>H: SubmitResponse
   H-->>C: JSON
+
+  C->>H: GET /api/leaderboard
+  H->>U: GetLeaderboard(limit)
+  U->>R: GetLeaderboard(limit)
+  R->>DB: SELECT exam_results ORDER BY score DESC, created_at ASC LIMIT n
+  DB-->>R: rows
+  R-->>U: []ExamResult
+  U-->>H: []LeaderboardEntryDTO
+  H-->>C: JSON entries
 ```
 
 ## Tech Stack ฝั่ง Frontend
@@ -133,8 +160,8 @@ sequenceDiagram
 | **Vue 3** | UI framework — Composition API + `<script setup>` |
 | **Vite** | build และ dev server |
 | **Tailwind CSS** | สไตล์ utility-first, responsive, mobile-first |
-| **Vue Router** | เส้นทางหน้าทำข้อสอบ (IT 10-1) กับหน้าผล (IT 10-2) |
-| **Pinia** | state ชื่อผู้สอบ, คำถาม, คำตอบ, คะแนน — โหลดข้อสอบจาก API เท่านั้น |
+| **Vue Router** | เส้นทาง `/` (ทำข้อสอบ), `/result` (ผล), `/leaderboard` (กระดานอันดับ) |
+| **Pinia** | state ชื่อผู้สอบ, คำถาม, คำตอบ, คะแนน, leaderboard — โหลดข้อสอบและอันดับจาก API เท่านั้น |
 
 ## Tech Stack ฝั่ง Backend
 
@@ -174,16 +201,16 @@ backend/
 ├── cmd/api/main.go          # entry, SQLite path, AutoMigrate, seed, DI, Gin
 ├── internal/
 │   ├── models/              # Question, Option, ExamResult
-│   ├── repository/          # GORM: GetQuestions, SaveExamResult, migrate, seed
-│   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers
-│   └── handler/             # Gin: GET /api/questions, POST /api/submit
+│   ├── repository/          # GORM: GetQuestions, SaveExamResult, GetLeaderboard, migrate, seed
+│   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers, GetLeaderboard
+│   └── handler/             # Gin: GET /api/questions, POST /api/submit, GET /api/leaderboard
 ├── go.mod
 └── data/exam.db             # สร้างเมื่อรัน (อยู่ใน .gitignore)
 ```
 
 - **Handler** รับ/ส่ง JSON ไม่มี business logic หนัก
-- **Usecase** รวม `GetQuestions` (map เป็น DTO ไม่ส่งเฉลย), `SubmitExam` (ดึงเฉลยจาก DB → คำนวณคะแนน → `SaveExamResult`)
-- **Repository** คุยกับ GORM/SQLite เท่านั้น
+- **Usecase** รวม `GetQuestions` (map เป็น DTO ไม่ส่งเฉลย), `SubmitExam` (ดึงเฉลยจาก DB → คำนวณคะแนน → `SaveExamResult`), `GetLeaderboard` (DTO อันดับ ไม่ส่งคำตอบดิบ)
+- **Repository** คุยกับ GORM/SQLite เท่านั้น — รวม `GetLeaderboard` สำหรับอ่าน `exam_results`
 
 รายละเอียด endpoint และตัวอย่าง JSON: [api.md](./api.md)
 

@@ -10,5 +10,6 @@ func RegisterRoutes(r *gin.Engine, exam *ExamHTTP) {
 	{
 		api.GET("/questions", exam.GetQuestions)
 		api.POST("/submit", exam.Submit)
+		api.GET("/leaderboard", exam.GetLeaderboard)
 	}
 }

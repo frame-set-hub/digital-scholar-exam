@@ -21,7 +21,7 @@
 | รายการ | คำสั่ง / ตำแหน่ง | สถานะ |
 |--------|------------------|--------|
 | Unit test usecase | `cd backend && go test ./... -count=1` | มี — `internal/usecase/exam_usecase_test.go` |
-| เนื้อหาที่ทดสอบ | `ScoreAnswers` + `SubmitExam` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — รวม **edge cases** ด้านล่าง | มี |
+| เนื้อหาที่ทดสอบ | `ScoreAnswers` + `SubmitExam` + `GetLeaderboard` ด้วย **mock** `QuestionStore` / `ExamResultStore` (testify/mock) — รวม **edge cases** ด้านล่าง | มี |
 | เครื่องมือ | `testing`, `github.com/stretchr/testify/assert`, `github.com/stretchr/testify/mock` | |
 
 **Edge cases (`internal/usecase/exam_usecase_test.go`):**

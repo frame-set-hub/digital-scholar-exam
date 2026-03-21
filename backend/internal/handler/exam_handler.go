@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"digital-scholar-exam/backend/internal/usecase"
 
@@ -52,4 +53,20 @@ func (h *ExamHTTP) Submit(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, res)
+}
+
+// GetLeaderboard GET /api/leaderboard
+func (h *ExamHTTP) GetLeaderboard(c *gin.Context) {
+	limit := 0
+	if q := c.Query("limit"); q != "" {
+		if n, err := strconv.Atoi(q); err == nil {
+			limit = n
+		}
+	}
+	entries, err := h.uc.GetLeaderboard(c.Request.Context(), limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load leaderboard"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"entries": entries})
 }

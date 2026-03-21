@@ -14,4 +14,5 @@ type QuestionStore interface {
 // ExamResultStore บันทึกผลการสอบลง SQLite
 type ExamResultStore interface {
 	SaveExamResult(ctx context.Context, r *models.ExamResult) error
+	GetLeaderboard(ctx context.Context, limit int) ([]models.ExamResult, error)
 }

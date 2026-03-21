@@ -8,6 +8,12 @@ Base URL (dev): `http://localhost:8080`
 |--------|------|-----------|
 | `GET` | `/api/questions` | รายการข้อสอบ + ตัวเลือก **ไม่มี** `correctOptionId` |
 | `POST` | `/api/submit` | รับคำตอบ → คำนวณคะแนนที่เซิร์ฟเวอร์ → บันทึก `exam_results` |
+| `GET` | `/api/leaderboard` | อันดับผู้สอบจาก `exam_results` (คะแนนสูงก่อน, คะแนนเท่ากันคนสอบก่อนอยู่บน) — ไม่ส่ง `answers` |
+
+## GET `/api/leaderboard`
+
+- Query (optional): `limit` — จำนวนอันดับสูงสุด (ค่าเริ่มต้น 20, สูงสุด 20)
+- Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
 
 ## POST `/api/submit`
 

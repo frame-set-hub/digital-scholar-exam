@@ -35,9 +35,9 @@
 | บรรทัด (โดยประมาณ) | ทำอะไร |
 |---------------------|--------|
 | 1 | `createRouter`, `createWebHistory` |
-| 3–22 | นิยาม `routes`: `/` → lazy load `ExamView`, `/result` → `ResultView`, catch-all → `/` |
-| 25–28 | `afterEach` ตั้ง `document.title` จาก `meta.title` |
-| 30 | `export default router` — ถูก import ใน `main.js` และใน `examStore.js` |
+| 3–28 | นิยาม `routes`: `/` → lazy load `ExamView`, `/result` → `ResultView`, `/leaderboard` → `LeaderboardView`, catch-all → `/` |
+| 31–34 | `afterEach` ตั้ง `document.title` จาก `meta.title` |
+| 36 | `export default router` — ถูก import ใน `main.js` และใน `examStore.js` |
 
 ### 4. HTTP ฝั่งเบราว์เซอร์ — `frontend/src/api/client.js`
 
@@ -54,33 +54,60 @@
 | บรรทัด (โดยประมาณ) | ทำอะไร |
 |---------------------|--------|
 | 1–4 | import Pinia, Vue `ref`/`computed`, `router`, `apiUrl`/`fetchJSON` |
-| 6–101 | `defineStore('exam', () => { ... })` — ไม่มีข้อสอบ mock ใน bundle; ดึงจาก API เท่านั้น |
+| 6–129 | `defineStore('exam', () => { ... })` — ไม่มีข้อสอบ mock ใน bundle; ดึงจาก API เท่านั้น |
 | 7–10 | state: `candidateName`, `questions`, `answers`, `score` |
-| 12–13 | `loadState`, `loadError` |
-| 15–16 | `loadQuestionsInflight` กันยิง GET ซ้ำพร้อมกัน |
-| 18 | `totalQuestions` = `questions.length` |
-| 20–22 | `setAnswer` |
-| 28–59 | `loadQuestions` — `GET /api/questions` เท่านั้น; ล้มเหลวเคลียร์ `questions` + ตั้ง `loadError` |
-| 61–67 | `answersForSubmit` — คีย์เป็น string ตามสัญญา API |
-| 69–79 | `submitExam` — `POST /api/submit` แล้ว `router.push` ไป `result` |
-| 81–86 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน กลับหน้าสอบ (ไม่เคลียร์ `questions`) |
-| 88–100 | `return` สิ่งที่คอมโพเนนต์ใช้ได้ |
+| 12–14 | `leaderboard`, `leaderboardState`, `leaderboardError` |
+| 16–17 | `loadState`, `loadError` |
+| 19–20 | `loadQuestionsInflight` กันยิง GET ซ้ำพร้อมกัน |
+| 22 | `totalQuestions` = `questions.length` |
+| 24–26 | `setAnswer` |
+| 32–63 | `loadQuestions` — `GET /api/questions` เท่านั้น; ล้มเหลวเคลียร์ `questions` + ตั้ง `loadError` |
+| 65–80 | `loadLeaderboard` — `GET /api/leaderboard` → `entries` ลง `leaderboard` |
+| 82–88 | `answersForSubmit` — คีย์เป็น string ตามสัญญา API |
+| 90–100 | `submitExam` — `POST /api/submit` แล้ว `router.push` ไป `result` |
+| 102–110 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับหน้าสอบ (ไม่เคลียร์ `questions`) |
+| 112–128 | `return` สิ่งที่คอมโพเนนต์ใช้ได้ |
 
-### 6. หน้าทำข้อสอบ — `frontend/src/views/ExamView.vue`
+### 6. หน้าทำข้อสอบ — `frontend/src/views/ExamView.vue` (**212 บรรทัด**)
 
-| ส่วน | บรรทัด (โดยประมาณ) | ทำอะไร |
-|------|---------------------|--------|
-| `<script setup>` | 1–4 | import Vue, Pinia `storeToRefs`, `useExamStore` |
-| | 6–7 | ดึง ref จาก store |
-| | 11–13 | `onMounted` → `exam.loadQuestions()` |
-| | 15–18 | `allAnswered` — มีข้ออย่างน้อยหนึ่งข้อ และทุกข้อมีคำตอบ |
-| | 19–25 | เลือกข้อ `selectOption` / `isSelected` |
-| | 27–46 | `handleSubmit` — validate ชื่อ + ครบข้อ → `submitExam` + จับ error |
-| | 48–76 | ฟังก์ชันคลาส Tailwind สำหรับการ์ดตัวเลือก |
-| `<template>` | เริ่ม ~79 | layout หลัก, แบนเนอร์ `loadError`, หัวข้อ, ช่องชื่อ |
-| | ~128–137 | spinner เมื่อ `loadState === 'loading'` |
-| | ~139–172 | `v-for` ข้อและปุ่มตัวเลือก |
-| | ~174–191 | ปุ่ม Submit |
+ไฟล์เดียวกับโค้ดใน repo — แบ่งตามบล็อก `<script>` / `<template>` / `<style>`
+
+#### `<script setup>` — บรรทัด 1–78
+
+| บรรทัด | ทำอะไร |
+|--------|--------|
+| 1–4 | import `ref`, `computed`, `onMounted` จาก Vue · `storeToRefs` จาก Pinia · `useExamStore` |
+| 6–7 | สร้าง `exam` · `storeToRefs(exam)` → `candidateName`, `questions`, `answers`, `loadState`, `loadError` |
+| 9 | `formError = ref('')` สำหรับ validation ฝั่งฟอร์มและข้อความ error ตอนส่งข้อสอบ |
+| 11–13 | `onMounted(() => exam.loadQuestions())` |
+| 15–18 | `allAnswered` (computed) — ถ้าไม่มีข้อ return false · ไม่เช่นนั้นทุกข้อต้องมีค่าใน `answers` |
+| 20–22 | `isSelected(questionId, optionId)` — เทียบ `answers[questionId] === optionId` |
+| 24–26 | `selectOption` → `exam.setAnswer(questionId, optionId)` |
+| 28–47 | `handleSubmit` — เคลียร์ `formError` · ตรวจชื่อไม่ว่าง · ตรวจ `allAnswered` · `await exam.submitExam()` · `catch` ตั้งข้อความไทยเมื่อ network/TypeError |
+| 49–59 | `optionCardClasses` — คืน array คลาส Tailwind สำหรับการ์ดตัวเลือก (border, พื้นหลัง, เงาเมื่อเลือก) |
+| 61–69 | `indicatorClasses` — วงกลมตัวอักษรตัวเลือก (A/B/C) |
+| 71–77 | `optionTextClasses` — ข้อความคำอธิบายตัวเลือก |
+| 78 | ปิด `</script>` |
+
+#### `<template>` — บรรทัด 80–202
+
+| บรรทัด | ทำอะไร |
+|--------|--------|
+| 80–82 | root `div` (`min-h-screen`, `bg-background`) · เปิด `<main>` คอนเทนเนอร์ `max-w-3xl`, padding |
+| 84–90 | `v-if="loadError"` — กล่องแจ้งเตือน (amber) แสดง `loadError`, `role="status"` |
+| 92–127 | บล็อกหัวหน้า + ชื่อผู้สอบ: badge “Live Session”, หัวข้อ “IT 10-1 Exam”, คำอธิบายโมดูล · `label` + `input#candidate-name` `v-model="candidateName"` · เส้นใต้เมื่อ focus |
+| 129–138 | `v-if="loadState === 'loading'"` — spinner + ข้อความ “กำลังโหลดข้อสอบจากเซิร์ฟเวอร์…” |
+| 141–173 | `v-else` + `space-y-12` — `v-for="(q, index) in questions"` แต่ละ `section`: หมายเลขข้อ · `q.prompt` / `q.subtitle` · `v-for="opt in q.options"` ปุ่ม `button` เรียก `selectOption` · ผูกคลาสจาก `optionCardClasses` / `indicatorClasses` / `optionTextClasses` |
+| 175–192 | `v-if="loadState !== 'loading'"` — แสดง `formError` (สีแดง) · ปุ่ม Submit (`:disabled="questions.length === 0"`) · `@click="handleSubmit"` · gradient + `material-symbols-outlined` arrow |
+| 193 | ปิด `</main>` |
+| 195–201 | `div` ตกแต่งพื้นหลังแบบ fixed + blur (มุมขวาบน / ซ้ายล่าง) |
+| 202 | ปิด root `</div>` |
+
+#### `<style scoped>` — บรรทัด 204–212
+
+| บรรทัด | ทำอะไร |
+|--------|--------|
+| 204–212 | `.material-symbols-outlined` — ตั้ง `font-variation-settings` (FILL, wght, GRAD, opsz) |
 
 ### 7. หน้าผล — `frontend/src/views/ResultView.vue`
 
@@ -89,63 +116,77 @@
 | `<script setup>` | 1–5 | import Vue, `useRouter`, Pinia, store |
 | | 11–15 | ถ้าไม่มี `score` → `replace` กลับ `exam` |
 | | 17–25 | คำนวณวงกลมความคืบหน้าคะแนน |
-| | 27–29 | `retake` → `resetExam()` |
-| `<template>` | ต่อจาก ~32 | แสดงชื่อ, คะแนน `score / totalQuestions`, ปุ่ม Retake |
+| | 27–33 | `retake` → `resetExam()` · `goLeaderboard` → `router.push` ไป `leaderboard` |
+| `<template>` | ต่อจาก ~36 | แสดงชื่อ, คะแนน `score / totalQuestions`, ปุ่ม View Leaderboard + Retake Exam |
+
+### 8. หน้ากระดานอันดับ — `frontend/src/views/LeaderboardView.vue`
+
+| ส่วน | บรรทัด (โดยประมาณ) | ทำอะไร |
+|------|---------------------|--------|
+| `<script setup>` | 1–4 | import Vue, Pinia, `useExamStore` |
+| | 6–8 | `storeToRefs` — `leaderboard`, `leaderboardState`, `leaderboardError` |
+| | 10–12 | `onMounted` → `loadLeaderboard()` |
+| | 14–18 | computed: อันดับ 1–3 และแถวที่เหลือ (`slice(3)`) |
+| | 20–34 | `formatScore` / `formatDate` · `backToExam` → `resetExam()` |
+| `<template>` | ~35–230 | header + สถานะโหลด/error/ว่าง · podium (1 / 2 / 3+ คน) · รายการอันดับ 4+ ด้วย `v-for` · ปุ่ม Back to Exam |
+| `<style scoped>` | ท้ายไฟล์ | gradient อันดับ 1–3, Material Symbols |
 
 ---
 
 ## ฝั่ง Backend (รัน `go run ./cmd/api` จาก `backend/` หรือตามที่โปรเจกต์กำหนด)
 
-### 8. Entry process — `backend/cmd/api/main.go`
+### 9. Entry process — `backend/cmd/api/main.go`
 
 | บรรทัด (โดยประมาณ) | ทำอะไร |
 |---------------------|--------|
-| 8–14 | import: `handler`, `repository`, `usecase`, `gin` |
-| 16–20 | `main()` เรียก `run()` |
-| 22–27 | สร้างโฟลเดอร์ `data/`, path `data/exam.db` |
-| 29–35 | `OpenSQLite` → `AutoMigrate` |
-| 36–37 | `EnsureSeedQuestions` — ใส่ข้อที่ยังไม่มีใน DB |
-| 40–44 | DI: `NewQuestionGorm`, `NewExamResultGorm` → `usecase.NewExam` → `handler.NewExamHTTP` |
-| 46–48 | `gin.Default()`, `corsMiddleware`, `RegisterRoutes` |
-| 50–54 | พอร์ต `:8080` หรือ `PORT` |
+| 3–15 | import: `handler`, `repository`, `usecase`, `gin` |
+| 17–21 | `main()` เรียก `run()` |
+| 23–31 | `resolveDataDir`, สร้างโฟลเดอร์ข้อมูล, path `exam.db` |
+| 33–42 | `OpenSQLite` → `AutoMigrate` → `EnsureSeedQuestions` |
+| 44–48 | DI: `NewQuestionGorm`, `NewExamResultGorm` → `usecase.NewExam` → `handler.NewExamHTTP` |
+| 50–58 | `gin.Default()`, `corsMiddleware`, `RegisterRoutes`, `Run` — พอร์ต `:8080` หรือ `PORT` |
+| 82–93 | `corsMiddleware` — อนุญาต `GET`/`POST`/`OPTIONS` สำหรับ `/api` |
 
-### 9. ลงทะเบียน route — `backend/internal/handler/router.go`
+### 10. ลงทะเบียน route — `backend/internal/handler/router.go`
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 8–13 | กลุ่ม `/api`: `GET /questions`, `POST /submit` |
+| 8–14 | กลุ่ม `/api`: `GET /questions`, `POST /submit`, `GET /leaderboard` |
 
-### 10. HTTP + JSON — `backend/internal/handler/exam_handler.go`
-
-| บรรทัด (โดยประมาณ) | ทำอะไร |
-|---------------------|--------|
-| 11–19 | struct `ExamHTTP`, constructor |
-| 21–29 | `GetQuestions` → usecase → `{ "questions": ... }` |
-| 31–35 | `SubmitBody` — `candidateName`, `answers` |
-| 37–55 | `Submit` — bind JSON, ตรวจ `answers` ไม่ว่าง → usecase → 200 |
-
-### 11. กฎธุรกิจ — `backend/internal/usecase/exam_usecase.go`
+### 11. HTTP + JSON — `backend/internal/handler/exam_handler.go`
 
 | บรรทัด (โดยประมาณ) | ทำอะไร |
 |---------------------|--------|
-| 11–20 | struct `Exam` อ้าง `QuestionStore`, `ExamResultStore` (interface จาก `ports.go`) |
-| 22–42 | DTO ส่งออก API + `SubmitResponse` |
-| 44–64 | `GetQuestions` — map `Question` → DTO **ไม่ใส่เฉลย** |
-| 66–95 | `SubmitExam` — โหลดคำถาม → `ScoreAnswers` → สร้าง `ExamResult` + `SaveExamResult` |
-| 97–107 | `ScoreAnswers` — เทียบ `answers["id"]` กับ `CorrectOptionID` |
+| 12–20 | struct `ExamHTTP`, constructor |
+| 22–29 | `GetQuestions` → usecase → `{ "questions": ... }` |
+| 32–36 | `SubmitBody` — `candidateName`, `answers` |
+| 38–55 | `Submit` — bind JSON, ตรวจ `answers` ไม่ว่าง → usecase → 200 |
+| 58–71 | `GetLeaderboard` — query `limit` (optional) → `{ "entries": ... }` |
 
-### 12. Interface ชั้น usecase — `backend/internal/usecase/ports.go`
+### 12. กฎธุรกิจ — `backend/internal/usecase/exam_usecase.go`
+
+| บรรทัด (โดยประมาณ) | ทำอะไร |
+|---------------------|--------|
+| 12–20 | struct `Exam` อ้าง `QuestionStore`, `ExamResultStore` (interface จาก `ports.go`) |
+| 23–52 | DTO ส่งออก API + `SubmitResponse` + `LeaderboardEntryDTO` |
+| 54–74 | `GetQuestions` — map `Question` → DTO **ไม่ใส่เฉลย** |
+| 76–105 | `SubmitExam` — โหลดคำถาม → `ScoreAnswers` → สร้าง `ExamResult` + `SaveExamResult` |
+| 107–125 | `GetLeaderboard` — `GetLeaderboard` จาก store → ใส่ `rank`, `CreatedAt` เป็น RFC3339 |
+| 127–137 | `normalizeLeaderboardLimit` — ค่าเริ่มต้นและเพดาน 20 |
+| 139–149 | `ScoreAnswers` — เทียบ `answers["id"]` กับ `CorrectOptionID` |
+
+### 13. Interface ชั้น usecase — `backend/internal/usecase/ports.go`
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 9–17 | `QuestionStore`, `ExamResultStore` — repository ต้อง implement |
+| 9–17 | `QuestionStore`, `ExamResultStore` (`SaveExamResult`, `GetLeaderboard`) — repository ต้อง implement |
 
-### 13. โมเดล DB — `backend/internal/models/question.go`, `exam_result.go`
+### 14. โมเดล DB — `backend/internal/models/question.go`, `exam_result.go`
 
 - `question.go`: `Question`, `Option`, ฟิลด์ `CorrectOptionID` ฝั่ง DB
 - `exam_result.go`: บันทึกชื่อ, คะแนน, รวมข้อ, `AnswersJSON`, `CreatedAt`
 
-### 14. GORM / SQLite — `backend/internal/repository/`
+### 15. GORM / SQLite — `backend/internal/repository/`
 
 | ไฟล์ | ทำอะไร |
 |------|--------|
@@ -153,19 +194,19 @@
 | `migrate.go` | `AutoMigrate` ตาราง Question, Option, ExamResult |
 | `seed.go` | `EnsureSeedQuestions`, `seedQuestions()` — ข้อสอบตัวอย่างใน SQLite สำหรับ API |
 | `question_gorm.go` | `GetQuestions` — `Preload("Options")`, `Order("sort_order")` |
-| `exam_result_gorm.go` | `SaveExamResult` — `Create` |
+| `exam_result_gorm.go` | `SaveExamResult` — `Create` · `GetLeaderboard` — `ORDER BY score DESC`, `created_at ASC`, `Limit` |
 
-### 15. ทดสอบ usecase — `backend/internal/usecase/exam_usecase_test.go`
+### 16. ทดสอบ usecase — `backend/internal/usecase/exam_usecase_test.go`
 
 | ทำอะไร |
 |--------|
-| mock `QuestionStore` / `ExamResultStore`, ทดสอบ `ScoreAnswers` และ `SubmitExam` |
+| mock `QuestionStore` / `ExamResultStore`, ทดสอบ `ScoreAnswers`, `SubmitExam`, `GetLeaderboard` |
 
 ---
 
 ## สรุปลำดับ “เปิดอ่าน” แนะนำ
 
-**Frontend:** `main.js` → `App.vue` → `router/index.js` → `api/client.js` + `vite.config.js` → `stores/examStore.js` → `views/ExamView.vue` → `views/ResultView.vue`
+**Frontend:** `main.js` → `App.vue` → `router/index.js` → `api/client.js` + `vite.config.js` → `stores/examStore.js` → `views/ExamView.vue` → `views/ResultView.vue` → `views/LeaderboardView.vue`
 
 **Backend:** `cmd/api/main.go` → `handler/router.go` → `handler/exam_handler.go` → `usecase/exam_usecase.go` + `ports.go` → `models/*` → `repository/*`
 

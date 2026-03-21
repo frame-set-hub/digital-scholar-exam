@@ -17,6 +17,7 @@
 
 - **Frontend:** flow ครบ — Pinia โหลดข้อสอบจาก API (`GET /api/questions`) เท่านั้น
 - **Backend:** มี API `GET /api/questions`, `POST /api/submit`, SQLite + seed อัตโนมัติ — ดู [`api.md`](./api.md)
+- **Phase 7:** เพิ่มระบบ Leaderboard โดยใช้ข้อมูลจากตาราง `ExamResult` เรียงลำดับตามคะแนน (`Score DESC`) และเวลา (`CreatedAt ASC`) เพื่อแสดงผลอันดับผู้เข้าสอบ — API `GET /api/leaderboard`, หน้า `/leaderboard` ใน Vue
 
 ## เป้าหมายระยะสั้น
 
@@ -69,14 +70,15 @@
 |--------|-------------|
 | Entry | `backend/cmd/api/main.go` |
 | DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed เมื่อยังไม่มีข้อ |
-| API | `GET /api/questions` — ข้อสอบไม่รวมเฉลย; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` และบันทึก `exam_results` |
+| API | `GET /api/questions` — ข้อสอบไม่รวมเฉลย; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` และบันทึก `exam_results`; `GET /api/leaderboard` — อันดับผู้สอบ (ไม่ส่งคำตอบดิบ) |
 | ชั้นโค้ด | `handler` → `usecase` → `repository` — ดู [architech.md](./architech.md) |
 
 ## การผสาน Frontend กับ Backend (สถานะปัจจุบัน)
 
-- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` เรียก API
+- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` เรียก API
 - โหลดข้อสอบ: `GET /api/questions` — ล้มเหลวแสดงข้อความ error ไม่มีชุดข้อสอบในเครื่อง
 - ส่งข้อสอบ: `POST /api/submit` — คะแนนจากเซิร์ฟเวอร์เท่านั้น
+- กระดานอันดับ: `GET /api/leaderboard` — `LeaderboardView` เรียก `loadLeaderboard()` แสดงรายการจาก `exam_results` (ไม่ส่งคำตอบดิบ)
 - Production: ตั้ง `VITE_API_BASE_URL` หรือ reverse proxy ร่วม host — ดู `frontend/.env.example`
 
 ## ประสบการณ์ผู้ใช้และความปลอดภัย

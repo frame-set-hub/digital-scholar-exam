@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"time"
 
 	"digital-scholar-exam/backend/internal/models"
 )
@@ -39,6 +40,15 @@ type SubmitResponse struct {
 	CandidateName string `json:"candidateName"`
 	Score         int    `json:"score"`
 	Total         int    `json:"total"`
+}
+
+// LeaderboardEntryDTO อันดับผู้สอบสำหรับ API (ไม่รวมคำตอบดิบ)
+type LeaderboardEntryDTO struct {
+	Rank          int    `json:"rank"`
+	CandidateName string `json:"candidateName"`
+	Score         int    `json:"score"`
+	Total         int    `json:"total"`
+	CreatedAt     string `json:"createdAt"`
 }
 
 // GetQuestions ดึงข้อสอบสำหรับหน้า IT 10-1 (ไม่รวม correctOptionId)
@@ -92,6 +102,38 @@ func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map
 		Score:         score,
 		Total:         total,
 	}, nil
+}
+
+// GetLeaderboard ดึงอันดับจาก repository แล้วส่งเฉพาะฟิลด์ที่จำเป็น
+func (e *Exam) GetLeaderboard(ctx context.Context, limit int) ([]LeaderboardEntryDTO, error) {
+	limit = normalizeLeaderboardLimit(limit)
+	rows, err := e.results.GetLeaderboard(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]LeaderboardEntryDTO, 0, len(rows))
+	for i, row := range rows {
+		out = append(out, LeaderboardEntryDTO{
+			Rank:          i + 1,
+			CandidateName: row.CandidateName,
+			Score:         row.Score,
+			Total:         row.Total,
+			CreatedAt:     row.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	return out, nil
+}
+
+func normalizeLeaderboardLimit(limit int) int {
+	const defaultLimit = 20
+	const maxLimit = 20
+	if limit <= 0 {
+		return defaultLimit
+	}
+	if limit > maxLimit {
+		return maxLimit
+	}
+	return limit
 }
 
 // ScoreAnswers นับคะแนนจากคำตอบ (คีย์ของ map เป็น string ของ question id เช่น "1","2")

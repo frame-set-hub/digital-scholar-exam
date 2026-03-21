@@ -6,7 +6,7 @@
 |--------|---------|
 | [architech.md](./architech.md) | Tech stack, flow การทำงาน / usecase / ข้อมูล, diagram |
 | [api.md](./api.md) | **API Reference** — endpoint, ตัวอย่าง JSON |
-| [code_analyze.md](./code_analyze.md) | คู่มืออ่านโค้ดทีละไฟล์ — import, entrypoint, ช่วงบรรทัด |
+| [code_analyze.md](./code_analyze.md) | คู่มืออ่านโค้ดทีละไฟล์ — import, entrypoint, ช่วงบรรทัด (รวม `LeaderboardView` / `GET /api/leaderboard`) |
 | [planning.md](./planning.md) | แผนอนาคต, เป้าหมายระยะยาว (scale / deploy), ผสาน FE/BE |
 | [testing.md](./testing.md) | แนวทางทดสอบและบันทึกผล |
 

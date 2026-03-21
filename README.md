@@ -32,7 +32,20 @@ cp .env.example .env   # ครั้งแรก — .env ถูก gitignore
 npm install && npm run dev
 ```
 
-รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` และส่งคำตอบด้วย `POST /api/submit` เท่านั้น (ต้องรัน backend ให้พร้อม)
+รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` ส่งคำตอบด้วย `POST /api/submit` และหน้า Leaderboard ดึง `GET /api/leaderboard` (ต้องรัน backend ให้พร้อม)
+
+### ข้อมูล mock สำหรับทดสอบ Leaderboard
+
+ฐานข้อมูล SQLite อยู่ที่ `backend/data/exam.db` (สร้างตอนรัน API — อยู่ใน `.gitignore`)
+
+**หยุด backend ก่อน** (กันติดล็อกไฟล์ DB) แล้วใช้สคริปต์ใดสคริปต์หนึ่งจาก root ของ repo:
+
+| การทำ | ไฟล์ | คำสั่ง |
+|--------|------|--------|
+| แทรกแถวตัวอย่างใน `exam_results` | [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql` |
+| **ลบผลการสอบทั้งหมด** (ล้าง Leaderboard / รีเซ็ตก่อนลองใหม่) | [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql` |
+
+รัน mock ซ้ำจะ INSERT เพิ่มเรื่อยๆ — ถ้าอยากเริ่มว่างก่อนแทรก mock ให้รัน **clear** ก่อน
 
 ## เอกสาร (อ่านต่อ)
 
@@ -53,5 +66,5 @@ npm install && npm run dev
 | โฟลเดอร์ | คำอธิบาย |
 |----------|----------|
 | [`frontend/`](./frontend/) | Vue 3 + Vite + Pinia + Tailwind |
-| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) |
+| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) · SQL ช่วยทดสอบ: [`mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql), [`clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) |
 | [`docs/`](./docs/) | เอกสารออกแบบและ API reference |

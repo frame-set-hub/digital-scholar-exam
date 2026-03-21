@@ -9,6 +9,10 @@ export const useExamStore = defineStore('exam', () => {
   const answers = ref({})
   const score = ref(null)
 
+  const leaderboard = ref([])
+  const leaderboardState = ref('idle') // idle | loading | error
+  const leaderboardError = ref(null)
+
   const loadState = ref('idle') // idle | loading | error
   const loadError = ref(null)
 
@@ -58,6 +62,23 @@ export const useExamStore = defineStore('exam', () => {
     return loadQuestionsInflight
   }
 
+  /** GET /api/leaderboard — อันดับผู้สอบ (ไม่รวมคำตอบดิบ) */
+  async function loadLeaderboard() {
+    leaderboardState.value = 'loading'
+    leaderboardError.value = null
+    try {
+      const data = await fetchJSON(apiUrl('/api/leaderboard'))
+      leaderboard.value = Array.isArray(data.entries) ? data.entries : []
+      leaderboardState.value = 'idle'
+    } catch (e) {
+      leaderboard.value = []
+      leaderboardError.value =
+        e?.message ||
+        'ไม่สามารถโหลดกระดานจัดอันดับ — ตรวจสอบว่า backend รันที่ :8080'
+      leaderboardState.value = 'error'
+    }
+  }
+
   function answersForSubmit() {
     const out = {}
     for (const [k, v] of Object.entries(answers.value)) {
@@ -82,6 +103,9 @@ export const useExamStore = defineStore('exam', () => {
     candidateName.value = ''
     answers.value = {}
     score.value = null
+    leaderboard.value = []
+    leaderboardState.value = 'idle'
+    leaderboardError.value = null
     router.push({ name: 'exam' })
   }
 
@@ -90,11 +114,15 @@ export const useExamStore = defineStore('exam', () => {
     questions,
     answers,
     score,
+    leaderboard,
+    leaderboardState,
+    leaderboardError,
     totalQuestions,
     loadState,
     loadError,
     setAnswer,
     loadQuestions,
+    loadLeaderboard,
     submitExam,
     resetExam,
   }
