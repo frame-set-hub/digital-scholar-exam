@@ -1,19 +1,19 @@
 # API Reference (Backend)
 
-Single **canonical** reference for endpoints and example request/response — update here when the API changes.
+แหล่งอ้างอิง **เดียว** สำหรับ endpoint และตัวอย่าง request/response — อัปเดตที่นี่เมื่อ API เปลี่ยน
 
 Base URL (dev): `http://localhost:8080`
 
-| Method | Path | Description |
+| Method | Path | คำอธิบาย |
 |--------|------|-----------|
-| `GET` | `/api/questions` | Question list + options **without** `correctOptionId` |
-| `POST` | `/api/submit` | Accept answers → score on server → persist `exam_results` |
-| `GET` | `/api/leaderboard` | Ranked candidates from `exam_results` (highest score first; ties broken by earliest submission) — does not include `answers` |
+| `GET` | `/api/questions` | รายการข้อสอบ + ตัวเลือก **ไม่มี** `correctOptionId` |
+| `POST` | `/api/submit` | รับคำตอบ → คำนวณคะแนนที่เซิร์ฟเวอร์ → บันทึก `exam_results` |
+| `GET` | `/api/leaderboard` | อันดับผู้สอบจาก `exam_results` (คะแนนสูงก่อน; คะแนนเท่ากันคนส่งก่อนอยู่บน) — ไม่ส่ง `answers` |
 
 ## GET `/api/leaderboard`
 
-- Query (optional): `limit` — max number of entries (default 20, max 20)
-- Example response: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
+- Query (optional): `limit` — จำนวนอันดับสูงสุด (ค่าเริ่มต้น 20, สูงสุด 20)
+- Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
 
 ## POST `/api/submit`
 
@@ -21,7 +21,7 @@ Base URL (dev): `http://localhost:8080`
 
 ```json
 {
-  "candidateName": "Jane Doe",
+  "candidateName": "ชื่อผู้สอบ",
   "answers": {
     "1": "1c",
     "2": "2b",
@@ -30,23 +30,23 @@ Base URL (dev): `http://localhost:8080`
 }
 ```
 
-- Keys in `answers` are **strings** of question `id` values as in the database
-- Example response: `{ "candidateName": "...", "score": 3, "total": 3 }`
+- คีย์ใน `answers` เป็น **string** ของ question `id` ตรงกับฐานข้อมูล
+- Response ตัวอย่าง: `{ "candidateName": "...", "score": 3, "total": 3 }`
 
-**Errors (JSON body `{ "error": "..." }`)**
+**ข้อผิดพลาด (JSON body `{ "error": "..." }`)**
 
-| HTTP | When |
-|------|------|
-| `400` | Body invalid, `answers` empty, or ชื่อว่างหลัง trim |
+| HTTP | เมื่อไหร่ |
+|------|-----------|
+| `400` | body ไม่ถูกต้อง, `answers` ว่าง, หรือชื่อว่างหลัง trim |
 | `409` | ชื่อผู้สอบซ้ำกับผลที่บันทึกแล้ว (`exam_results.candidate_name` เทียบตรงหลัง trim) |
 | `500` | ฐานข้อมูล / use case อื่น |
 
 ข้อความตัวอย่าง: `409` → `ชื่อนี้ถูกใช้ส่งข้อสอบแล้ว — กรุณาใช้ชื่ออื่น`
 
-Processing flow: [architech.md](./architech.md)
+Flow การประมวลผล: [architech.md](./architech.md)
 
 ## Troubleshooting (Chrome DevTools)
 
-The message **"Failed to load response data. No resource with given identifier found"** often appears when there are **duplicate requests** or you inspect an old response after refresh — the frontend avoids repeating `GET /api/questions` when questions are already in Pinia.
+ข้อความ **"Failed to load response data. No resource with given identifier found"** มักเกิดเมื่อมี **หลาย request ซ้ำ** หรือเปิดดู response ของ request เก่าหลังรีเฟรช — ฝั่ง frontend ลดการเรียก `GET /api/questions` ซ้ำเมื่อมีข้อสอบใน Pinia แล้ว
 
-If it persists: enable **Preserve log**, click the latest request right after load — or use `curl` to verify the body.
+ถ้ายังเจอ: เปิด **Preserve log**, คลิก request ล่าสุดทันทีหลังโหลด — หรือใช้ `curl` ยืนยัน body แทน

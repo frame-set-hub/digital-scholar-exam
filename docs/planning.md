@@ -1,107 +1,107 @@
 # Planning & Future Design (FE + BE)
 
-## Table of contents
+## สารบัญ
 
 - [Planning \& Future Design (FE + BE)](#planning--future-design-fe--be)
-  - [Table of contents](#table-of-contents)
-  - [Current state](#current-state)
-  - [Short-term goals](#short-term-goals)
-    - [Leaderboard: your rank when outside top 20](#leaderboard-your-rank-when-outside-top-20)
-  - [Long-term goals](#long-term-goals)
-  - [Supporting multiple exams](#supporting-multiple-exams)
-  - [Existing backend (reference)](#existing-backend-reference)
-  - [Frontend and backend integration (current)](#frontend-and-backend-integration-current)
-  - [UX and security](#ux-and-security)
-  - [Automated testing](#automated-testing)
+  - [สารบัญ](#สารบัญ)
+  - [สถานะปัจจุบัน](#สถานะปัจจุบัน)
+  - [เป้าหมายระยะสั้น](#เป้าหมายระยะสั้น)
+    - [Leaderboard: ตำแหน่งของคุณเมื่ออยู่นอก top 20](#leaderboard-ตำแหน่งของคุณเมื่ออยู่นอก-top-20)
+  - [เป้าหมายระยะยาว](#เป้าหมายระยะยาว)
+  - [การรองรับข้อสอบหลายชุด](#การรองรับข้อสอบหลายชุด)
+  - [Backend ที่มีอยู่แล้ว (อ้างอิง)](#backend-ที่มีอยู่แล้ว-อ้างอิง)
+  - [การผสาน Frontend กับ Backend (ปัจจุบัน)](#การผสาน-frontend-กับ-backend-ปัจจุบัน)
+  - [UX และความปลอดภัย](#ux-และความปลอดภัย)
+  - [การทดสอบอัตโนมัติ](#การทดสอบอัตโนมัติ)
 
-## Current state
+## สถานะปัจจุบัน
 
-- **Frontend:** Full flow — Pinia loads questions from API (`GET /api/questions`) only
-- **Backend:** APIs `GET /api/questions`, `POST /api/submit`, SQLite + automatic seed — see [`api.md`](./api.md)
-- **Phase 7:** Added Leaderboard system using data from the `ExamResult` table, sorted by score (`Score DESC`) and time (`CreatedAt ASC`) to display candidate rankings — API `GET /api/leaderboard`, page `/leaderboard` in Vue
+- **Frontend:** flow ครบ — Pinia โหลดข้อสอบจาก API (`GET /api/questions`) เท่านั้น
+- **Backend:** API `GET /api/questions`, `POST /api/submit`, SQLite + seed อัตโนมัติ — ดู [`api.md`](./api.md)
+- **Phase 7:** เพิ่มระบบ Leaderboard จากตาราง `ExamResult` เรียงตามคะแนน (`Score DESC`) และเวลา (`CreatedAt ASC`) — API `GET /api/leaderboard`, หน้า `/leaderboard` ใน Vue
 
-## Short-term goals
+## เป้าหมายระยะสั้น
 
-- Frontend needs a running backend (or proxy to an API) to load questions and submit answers
-- Backend is the source of truth and scores submissions after integration
+- Frontend ต้องมี backend ที่รันอยู่ (หรือ proxy ไป API) เพื่อโหลดข้อสอบและส่งคำตอบ
+- Backend เป็นข้อมูลจริงและเป็นผู้ตัดสินคะแนนหลังผสานแล้ว
 
-### Leaderboard: your rank when outside top 20
+### Leaderboard: ตำแหน่งของคุณเมื่ออยู่นอก top 20
 
-**Problem:** `GET /api/leaderboard` returns at most **20** entries (see [`api.md`](./api.md)). The UI lists only those rows — if a candidate’s rank is **21+**, they never see their own row on `/leaderboard` (e.g. via Vite dev `http://localhost:5173/api/leaderboard` proxied to the backend).
+**ปัญหา:** `GET /api/leaderboard` คืนได้สูงสุด **20** แถว (ดู [`api.md`](./api.md)) UI แสดงเฉพาะแถวเหล่านั้น — ถ้าอันดับผู้สอบเป็น **21+** จะไม่เห็นแถวของตัวเองบน `/leaderboard` (เช่น ผ่าน Vite dev `http://localhost:5173/api/leaderboard` ที่ proxy ไป backend)
 
-**Direction (to implement later):**
+**ทิศทาง (ลงมือทำภายหลัง):**
 
-- **API:** e.g. optional `?name=` or `GET /api/leaderboard/me` after submit (needs stable identity — today only `candidateName` string) to return `{ rank, candidateName, score, total }` or merge a “your row” into the list response
-- **FE:** `LeaderboardView` — show top 20 plus a **“Your position”** strip (rank, score) when the user is not in the top list (requires passing name from result flow or session)
+- **API:** เช่น query `?name=` หรือ `GET /api/leaderboard/me` หลัง submit (ต้องมีตัวตนที่เสถียร — ตอนนี้มีแค่สตริง `candidateName`) เพื่อคืน `{ rank, candidateName, score, total }` หรือรวม “แถวของคุณ” ใน response รายการ
+- **FE:** `LeaderboardView` — แสดง top 20 พร้อมแถบ **“ตำแหน่งของคุณ”** (อันดับ, คะแนน) เมื่อผู้ใช้ไม่อยู่ในรายการ top (ต้องส่งชื่อจาก flow ผลหรือ session)
 
-Tracked in project progress: [`../execute.md`](../execute.md) (Backlog).
+ติดตามใน progress: [`../execute.md`](../execute.md) (Backlog)
 
-## Long-term goals
+## เป้าหมายระยะยาว
 
-This document sets direction when the system grows beyond "single machine / single user" — not an immediate implementation spec, but helps decide stack and sequencing later.
+เอกสารนี้กำหนดทิศทางเมื่อระบบโตเกิน “เครื่องเดียว / user เดียว” — ยังไม่ใช่สเปกลงมือทันที แต่ช่วยตัดสิน stack และลำดับงานภายหลัง
 
-### Scale and load
+### Scale และโหลด
 
-- **Horizontal:** Keep the API **stateless** (sessions not tied to one machine's memory) so multiple instances can sit behind a load balancer
-- **Database:** SQLite fits dev/demo — for high concurrent writes or backup/HA, target **PostgreSQL** (or MySQL); consider read replicas if read-heavy
-- **Bottleneck:** Usually DB and query/transaction design, not Go/Vue themselves
+- **แนวนอน:** ทำ API ให้ **stateless** (session ไม่ผูก memory เครื่อง) เพื่อให้หลาย instance อยู่หลัง load balancer ได้
+- **ฐานข้อมูล:** SQLite เหมาะ dev/สาธิต — เมื่อ concurrent เขียนสูงหรือต้อง backup/HA ให้เลือก **PostgreSQL** (หรือ MySQL); พิจารณา read replica ถ้าอ่านหนัก
+- **ขีดจำกัด:** มักอยู่ที่ DB และการออกแบบ query/transaction ไม่ใช่ Go/Vue เอง
 
-### Multiple users (and roles)
+### ผู้ใช้หลายคน (และบทบาท)
 
-- **Many candidates:** Need **identity** — registration/login or SSO — not only a string in `candidateName`
-- **Roles:** Separate **exam administrators** from **candidates**; may extend to orgs/classes (multi-tenant) later
-- **Tradeoff:** Backend auth (JWT / session cookie + HTTPS) is clearer than trusting client tokens alone
+- **ผู้สอบจำนวนมาก:** ต้องมี **ตัวตน** — ลงทะเบียน/ล็อกอิน หรือ SSO — ไม่ใช่แค่สตริงใน `candidateName`
+- **บทบาท:** แยก **ผู้ดูแลข้อสอบ** กับ **ผู้สอบ**; อาจขยายเป็น org/คลาส (multi-tenant) ภายหลัง
+- **Trade-off:** auth ฝั่ง backend (JWT / session cookie + HTTPS) ชัดกว่าเชื่อ token จาก client อย่างเดียว
 
-### Cloud / production deploy
+### Deploy บน cloud / production
 
-- **Frontend:** Static Vite build to **CDN / object storage** (e.g. S3 + CloudFront) or a **Pages** product; set `VITE_API_BASE_URL` to the real API
-- **Backend:** Go binary in a **container** (Docker) on **ECS, Cloud Run, Fly.io, Railway**, etc. — choose by budget, team, and familiarity
-- **Environments:** Separate `dev` / `staging` / `prod`, secrets outside the repo (platform env, vault)
+- **Frontend:** static build (Vite) ไป **CDN / object storage** (เช่น S3 + CloudFront) หรือ **Pages**; ตั้ง `VITE_API_BASE_URL` ชี้ API จริง
+- **Backend:** binary Go ใน **container** (Docker) บน **ECS, Cloud Run, Fly.io, Railway** ฯลฯ — เลือกตามงบ ทีม และความคุ้นเคย
+- **สภาพแวดล้อม:** แยก `dev` / `staging` / `prod`, เก็บ secret นอก repo (env แพลตฟอร์ม, vault)
 
-### Tradeoffs and stack choices
+### Tradeoff และการเลือก stack
 
-| Topic | Main options | Notes |
+| หัวข้อ | ทางเลือกหลัก | หมายเหตุ |
 |--------|----------------|-----------|
-| DB | SQLite → PostgreSQL | Migrate when concurrent writes matter; versioned migrations (e.g. golang-migrate) |
-| Cache / session | None → Redis | When sessions span instances or for rate limiting |
-| Queue | None → SQS / Rabbit / NATS | Heavy post-submit work (email, reports) should not block the request |
-| Monolith vs services | Keep Go monolith first | Split when boundaries are clear (e.g. grading service) — avoid premature split |
-| Observability | Plain logs → structured logs + metrics + tracing | Helps debug production at scale |
+| DB | SQLite → PostgreSQL | ย้ายเมื่อ concurrent write สำคัญ; migration มีเวอร์ชัน (เช่น golang-migrate) |
+| Cache / session | ไม่มี → Redis | เมื่อ session คร่อมหลาย instance หรือ rate limit |
+| Queue | ไม่มี → SQS / Rabbit / NATS | งานหนักหลัง submit (อีเมล, รายงาน) ไม่ควรบล็อก request |
+| Monolith vs บริการ | คง Go monolith ก่อน | แยกเมื่อขอบเขตชัด (เช่น grading service) — อย่าแยกเร็วเกิน |
+| Observability | log ธรรมดา → structured log + metrics + tracing | ช่วย debug บน production เมื่อ scale |
 
-Summary: **Go + Gin + GORM + Vue** can stay the base for a long — what changes first is usually **database, auth, and deploy**, not a full rewrite.
+สรุป: **Go + Gin + GORM + Vue** ใช้เป็นฐานได้นาน — ส่วนที่เปลี่ยนก่อนมักเป็น **ฐานข้อมูล, auth, และ deploy** ไม่ใช่รีเขียนทั้งระบบ
 
-## Supporting multiple exams
+## การรองรับข้อสอบหลายชุด
 
-- Define **Exam** as an entity: `id`, `title`, `slug`, `version`
-- **Backend:** Add `exams` table, `questions.exam_id`; API e.g. `GET /api/exams/:id/questions`
-- **Frontend:** route `/exam/:examId`, store separates catalog vs session or namespaces Pinia
+- นิยาม **Exam** เป็น entity: `id`, `title`, `slug`, `version`
+- **Backend:** เพิ่มตาราง `exams`, `questions.exam_id`; API เช่น `GET /api/exams/:id/questions`
+- **Frontend:** route `/exam/:examId`, store แยก catalog กับ session หรือ namespace ใน Pinia
 
-## Existing backend (reference)
+## Backend ที่มีอยู่แล้ว (อ้างอิง)
 
-| Item | Detail |
+| รายการ | รายละเอียด |
 |--------|-------------|
 | Entry | `backend/cmd/api/main.go` |
-| DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed when empty |
-| API | `GET /api/questions` — no answers in response; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` and persist `exam_results`; `GET /api/leaderboard` — ranked candidates (no raw answers) |
-| Layers | `handler` → `usecase` → `repository` — see [architech.md](./architech.md) |
+| DB | SQLite `backend/data/exam.db`, GORM `AutoMigrate` + seed เมื่อยังว่าง |
+| API | `GET /api/questions` — ไม่ส่งเฉลย; `POST /api/submit` — `{ candidateName, answers }` → `{ candidateName, score, total }` และบันทึก `exam_results`; `GET /api/leaderboard` — อันดับผู้สอบ (ไม่ส่งคำตอบดิบ) |
+| ชั้นโค้ด | `handler` → `usecase` → `repository` — ดู [architech.md](./architech.md) |
 
-## Frontend and backend integration (current)
+## การผสาน Frontend กับ Backend (ปัจจุบัน)
 
-- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` call the API
-- Load: `GET /api/questions` — on failure show error; no local question set
-- Submit: `POST /api/submit` — score from server only
-- Leaderboard: `GET /api/leaderboard` — `LeaderboardView` calls `loadLeaderboard()` displaying entries from `exam_results` (no raw answers)
-- Production: set `VITE_API_BASE_URL` or same-host reverse proxy — see `frontend/.env.example`
+- Dev: Vite proxy `/api` → `http://localhost:8080` — `examStore.loadQuestions()` / `submitExam()` / `loadLeaderboard()` เรียก API
+- โหลด: `GET /api/questions` — ล้มเหลวแสดง error; ไม่มีชุดข้อสอบในเครื่อง
+- ส่ง: `POST /api/submit` — คะแนนจากเซิร์ฟเวอร์เท่านั้น
+- Leaderboard: `GET /api/leaderboard` — `LeaderboardView` เรียก `loadLeaderboard()` แสดงรายการจาก `exam_results` (ไม่ส่งคำตอบดิบ)
+- Production: ตั้ง `VITE_API_BASE_URL` หรือ reverse proxy ร่วม host — ดู `frontend/.env.example`
 
-## UX and security
+## UX และความปลอดภัย
 
-- Candidate authentication (if added) — usually on BE (JWT / session), FE sends token
-- Time limits, autosave during exam
-- Trusted scoring: server is authoritative with `POST /api/submit` (do not trust the client alone)
+- การยืนยันตัวผู้สอบ (ถ้ามี) — มักทำที่ BE (JWT / session) แล้ว FE ส่ง token
+- จำกัดเวลา, autosave ระหว่างทำข้อสอบ
+- คะแนนที่เชื่อถือได้: เซิร์ฟเวอร์เป็นตัวตัดสินกับ `POST /api/submit` (ไม่เชื่อถือ client อย่างเดียว)
 
-## Automated testing
+## การทดสอบอัตโนมัติ
 
-- **Backend:** `cd backend && go test ./...` — use case + mock repository (already present)
-- **Frontend:** Vitest for store/views when added
+- **Backend:** `cd backend && go test ./...` — use case + mock repository (มีแล้ว)
+- **Frontend:** Vitest สำหรับ store/views เมื่อเพิ่ม
 
-Run logs and details: [testing.md](./testing.md)
+บันทึกการรันและรายละเอียด: [testing.md](./testing.md)
