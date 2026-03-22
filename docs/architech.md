@@ -36,7 +36,7 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 3. **Success:** questions stored in Pinia  
    **Failure:** clear `questions`, set `loadError`, show a message — no offline question set
 4. User enters name and selects answers → `setAnswer` updates `answers`
-5. Submit → validate name and completion · **If any question is unanswered:** show a message under the button, highlight every unanswered card with a red border, and smooth-scroll to the first unanswered (no API call) · **If complete:** **`POST /api/submit`** with `{ candidateName, answers }` → receive `score` from server → navigate to `/result`
+5. Submit → validate name and completion · **If any question is unanswered:** show a message under the button, highlight every unanswered card with a red border, and smooth-scroll to the first unanswered (no API call) · **If complete:** **`POST /api/submit`** with `{ candidateName, answers }` → server rejects duplicate names after trim (`409`) and empty-name cases (`400`) — UI shows the message on the name field and scrolls to it · **Success:** receive `score` from server → navigate to `/result`
 6. `ResultView` shows name and score → **View Leaderboard** → `/leaderboard` → `LeaderboardView` calls **`GET /api/leaderboard`** (`loadLeaderboard`) or **Retake** → `resetExam()`
 7. `LeaderboardView` button **Back to Exam** → `resetExam()` (clears name/answers/score/leaderboard, returns to `/` — does not clear questions to avoid redundant `GET /api/questions`)
 
@@ -48,7 +48,7 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 |------|----------------|------------------|
 | HTTP | `handler.ExamHTTP` | Accept request, bind JSON, HTTP status |
 | Business rules | `usecase.Exam` | `GetQuestions`: load from store → map to DTO **without answers** |
-| | | `SubmitExam`: load questions with answers from DB → `ScoreAnswers` → build `ExamResult` (including answer JSON) → `SaveExamResult` |
+| | | `SubmitExam`: trim ชื่อ → `CandidateNameExists` (ซ้ำแล้ว error) → load questions → `ScoreAnswers` → build `ExamResult` → `SaveExamResult` |
 | | | `GetLeaderboard`: load `ExamResult` from store → map to `LeaderboardEntryDTO` (does not include `answers`) |
 | Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite — `GetLeaderboard` sorts by `score DESC`, `created_at ASC` |
 
@@ -63,8 +63,8 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 **Submit (POST)**
 
 - **Frontend** sends `candidateName` and `answers` (keys are string question ids)
-- **Use case** loads questions + answers from DB as before → compares to `answers` → `score`, `total`
-- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`)
+- **Use case** ตรวจชื่อไม่ซ้ำ → loads questions + answers from DB → compares to `answers` → `score`, `total`
+- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`) — ชื่อเก็บหลัง trim; การห้ามซ้ำเป็นแอปพลิเคชัน (เทียบ `candidate_name` ตรง)
 
 **Leaderboard (GET)**
 

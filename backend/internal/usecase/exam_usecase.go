@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 
 	"digital-scholar-exam/backend/internal/models"
@@ -75,6 +76,11 @@ func (e *Exam) GetQuestions(ctx context.Context) ([]QuestionDTO, error) {
 
 // SubmitExam ดึงเฉลยจาก DB ตรวจคำตอบ บวกคะแนนต่อข้อที่ถูก แล้วให้ repository บันทึกชื่อกับคะแนนรวม
 func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map[string]string) (*SubmitResponse, error) {
+	name := strings.TrimSpace(candidateName)
+	if name == "" {
+		return nil, ErrCandidateNameRequired
+	}
+
 	qs, err := e.questions.GetQuestions(ctx)
 	if err != nil {
 		return nil, err
@@ -87,8 +93,16 @@ func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map
 		return nil, err
 	}
 
+	exists, err := e.results.CandidateNameExists(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrDuplicateCandidateName
+	}
+
 	res := &models.ExamResult{
-		CandidateName: candidateName,
+		CandidateName: name,
 		Score:           score,
 		Total:           total,
 		AnswersJSON:     string(payload),
@@ -98,7 +112,7 @@ func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map
 	}
 
 	return &SubmitResponse{
-		CandidateName: candidateName,
+		CandidateName: name,
 		Score:         score,
 		Total:         total,
 	}, nil

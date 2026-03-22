@@ -18,6 +18,19 @@ func NewExamResultGorm(db *gorm.DB) *ExamResultGorm {
 	return &ExamResultGorm{db: db}
 }
 
+// CandidateNameExists ตรวจว่ามีผลสอบด้วยชื่อนี้แล้วหรือไม่ (เทียบตรงหลัง trim ฝั่ง use case)
+func (r *ExamResultGorm) CandidateNameExists(ctx context.Context, candidateName string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.ExamResult{}).
+		Where("candidate_name = ?", candidateName).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // SaveExamResult บันทึกผลสอบลง SQLite
 func (r *ExamResultGorm) SaveExamResult(ctx context.Context, res *models.ExamResult) error {
 	return r.db.WithContext(ctx).Create(res).Error

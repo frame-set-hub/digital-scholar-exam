@@ -28,6 +28,11 @@ type MockExamResultStore struct {
 	mock.Mock
 }
 
+func (m *MockExamResultStore) CandidateNameExists(ctx context.Context, name string) (bool, error) {
+	args := m.Called(ctx, name)
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *MockExamResultStore) SaveExamResult(ctx context.Context, r *models.ExamResult) error {
 	args := m.Called(ctx, r)
 	return args.Error(0)
@@ -76,6 +81,7 @@ func TestExam_SubmitExam_FullScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Alice").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Alice" && r.Score == 3 && r.Total == 3
 	})).Return(nil)
@@ -97,6 +103,7 @@ func TestExam_SubmitExam_ZeroScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Bob").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Bob" && r.Score == 0 && r.Total == 3
 	})).Return(nil)
@@ -134,6 +141,7 @@ func TestExam_SubmitExam_MissingAnswers_PartialScore(t *testing.T) {
 	mr := new(MockExamResultStore)
 	two := sampleQuestions()[:2]
 	mq.On("GetQuestions", mock.Anything).Return(two, nil)
+	mr.On("CandidateNameExists", mock.Anything, "Partial").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Partial" && r.Score == 1 && r.Total == 2
 	})).Return(nil)
@@ -148,10 +156,35 @@ func TestExam_SubmitExam_MissingAnswers_PartialScore(t *testing.T) {
 	mr.AssertExpectations(t)
 }
 
+func TestExam_SubmitExam_EmptyNameAfterTrim(t *testing.T) {
+	ex := usecase.NewExam(new(MockQuestionStore), new(MockExamResultStore))
+	res, err := ex.SubmitExam(context.Background(), "   ", map[string]string{"1": "1c"})
+	assert.ErrorIs(t, err, usecase.ErrCandidateNameRequired)
+	assert.Nil(t, res)
+}
+
+func TestExam_SubmitExam_DuplicateName(t *testing.T) {
+	mq := new(MockQuestionStore)
+	mr := new(MockExamResultStore)
+	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Alice").Return(true, nil)
+
+	ex := usecase.NewExam(mq, mr)
+	res, err := ex.SubmitExam(context.Background(), "Alice", map[string]string{
+		"1": "1c", "2": "2b", "3": "3b",
+	})
+	assert.ErrorIs(t, err, usecase.ErrDuplicateCandidateName)
+	assert.Nil(t, res)
+	mr.AssertNotCalled(t, "SaveExamResult", mock.Anything, mock.Anything)
+	mq.AssertExpectations(t)
+	mr.AssertExpectations(t)
+}
+
 func TestExam_SubmitExam_InvalidOptionIDs_NoErrorZeroScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "BadIds").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "BadIds" && r.Score == 0 && r.Total == 3
 	})).Return(nil)

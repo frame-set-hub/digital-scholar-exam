@@ -11,7 +11,11 @@ Use this file to track project progress (supports opening a new session) — **u
 - [x] Phase 5: Unit Testing Setup (testify/mock for use case — score calculation)
 - [x] Phase 6: FE & BE Integration
 - [x] Phase 7: Leaderboard UI & API (Fetch top scores, Sorting, Routing)
-- [x] Phase 8: ExamView — submit validation UX (highlight all unanswered + scroll to first gap)
+- [x] Phase 8: Submit validation & UX — highlight unanswered questions + scroll to first gap; duplicate-name API (`409`) / name errors on field + scroll; Enter on name focuses Submit
+
+## Backlog (planned — not started)
+
+- [ ] **Leaderboard “เห็นตัวเอง”เมื่ออันดับเกิน top N** — ตอนนี้ `GET /api/leaderboard` จำกัด 20 แถว (default/max); ถ้าคะแนนของเราอยู่นอก 20 อันดับแรก หน้า `/leaderboard` จะไม่แสดงแถวของตัวเอง — ต้องออกแบบ API/UX เพิ่ม (เช่น query ตาม `candidateName` + rank, หรือแถว “Your position” แยก) สอดคล้องกับ [`docs/planning.md`](./docs/planning.md)
 
 ## Notes
 
@@ -22,7 +26,7 @@ Use this file to track project progress (supports opening a new session) — **u
 | 5 | `exam_usecase_test.go`: mock repository, tests for full score / zero / partial + `SubmitExam` |
 | 6 | Frontend: `GET /api/questions` + `POST /api/submit` (Vite proxy `/api` → :8080) — no bundled mock questions |
 | 7 | `GET /api/leaderboard` — sort `exam_results` by score (high→low) then `created_at` (earliest first); FE route `/leaderboard` + Pinia `loadLeaderboard()` |
-| 8 | `ExamView.vue`: submit while incomplete — `showUnansweredHighlight` + `questionSectionClasses` / in-card copy; `sectionRefs` + `scrollIntoView({ behavior: 'smooth', block: 'center' })` to the first question with `answers[q.id] == null`; `formError` under the button uses `animate-pulse` |
+| 8 | `ExamView.vue`: incomplete — `showUnansweredHighlight` + per-question red border + in-card copy; `sectionRefs` + smooth scroll to first gap; `submitError` under button (pulse when validation). Name/API — `nameError`, duplicate `409` / `400`; `fetchJSON` exposes `err.status`; Enter on name → focus Submit |
 
 ## Run backend (dev)
 

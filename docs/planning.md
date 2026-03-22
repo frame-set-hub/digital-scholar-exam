@@ -6,6 +6,7 @@
   - [Table of contents](#table-of-contents)
   - [Current state](#current-state)
   - [Short-term goals](#short-term-goals)
+    - [Leaderboard: your rank when outside top 20](#leaderboard-your-rank-when-outside-top-20)
   - [Long-term goals](#long-term-goals)
   - [Supporting multiple exams](#supporting-multiple-exams)
   - [Existing backend (reference)](#existing-backend-reference)
@@ -23,6 +24,17 @@
 
 - Frontend needs a running backend (or proxy to an API) to load questions and submit answers
 - Backend is the source of truth and scores submissions after integration
+
+### Leaderboard: your rank when outside top 20
+
+**Problem:** `GET /api/leaderboard` returns at most **20** entries (see [`api.md`](./api.md)). The UI lists only those rows — if a candidate’s rank is **21+**, they never see their own row on `/leaderboard` (e.g. via Vite dev `http://localhost:5173/api/leaderboard` proxied to the backend).
+
+**Direction (to implement later):**
+
+- **API:** e.g. optional `?name=` or `GET /api/leaderboard/me` after submit (needs stable identity — today only `candidateName` string) to return `{ rank, candidateName, score, total }` or merge a “your row” into the list response
+- **FE:** `LeaderboardView` — show top 20 plus a **“Your position”** strip (rank, score) when the user is not in the top list (requires passing name from result flow or session)
+
+Tracked in project progress: [`../execute.md`](../execute.md) (Backlog).
 
 ## Long-term goals
 

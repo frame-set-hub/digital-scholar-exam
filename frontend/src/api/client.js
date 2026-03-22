@@ -32,7 +32,10 @@ export async function fetchJSON(url, options = {}) {
   }
   if (!res.ok) {
     const msg = data?.error || res.statusText || 'Request failed'
-    throw new Error(msg)
+    const err = new Error(msg)
+    err.status = res.status
+    err.data = data
+    throw err
   }
   return data
 }

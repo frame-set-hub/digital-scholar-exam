@@ -43,7 +43,7 @@ Order matters: **Pinia first**, then router so every view can use the store
 |---------------------|--------|
 | 6–9 | `apiBase()` reads `import.meta.env.VITE_API_BASE_URL` |
 | 11–15 | `apiUrl(path)` joins base or uses relative `/api/...` |
-| 17–38 | `fetchJSON` — sets `Content-Type` when body exists, `JSON.parse`, throws on `!res.ok` |
+| 17–41 | `fetchJSON` — sets `Content-Type` when body exists, `JSON.parse`, throws on `!res.ok` with `Error` ที่มี `status` และ `data` จาก response |
 
 Together with **proxy** in `frontend/vite.config.js`: `server.port` from `DEV_SERVER_PORT` in `.env` (default `5173`); `server.proxy['/api']` forwards to `API_PROXY_TARGET` (default `http://localhost:8080`)
 
@@ -66,42 +66,37 @@ Together with **proxy** in `frontend/vite.config.js`: `server.port` from `DEV_SE
 | 102–110 | `resetExam` — clears name/answers/score/leaderboard, returns to exam (keeps `questions`) |
 | 112–128 | `return` — what components consume |
 
-### 6. Exam view — `frontend/src/views/ExamView.vue` (**~260 lines**)
+### 6. Exam view — `frontend/src/views/ExamView.vue` (**~330 lines**)
 
 Same file as in the repo — split by `<script>` / `<template>` / `<style>` blocks.
 
-#### `<script setup>` — lines 1–112
+#### `<script setup>`
+
+| Lines (approx.) | What it does |
+|-----------------|--------|
+| 1–4 | Import `ref`, `computed`, `onMounted`, `nextTick` from Vue · `storeToRefs` · `useExamStore` |
+| 6–7 | `exam` · `storeToRefs` → `candidateName`, `questions`, `answers`, `loadState`, `loadError` |
+| 9–28 | `nameError` / `submitError` · `showUnansweredHighlight` · `sectionRefs` + `setSectionRef` · `nameBlockRef` / `submitSectionRef` / `submitBtnRef` |
+| 31–33 | `onMounted(() => exam.loadQuestions())` |
+| 35–46 | `allAnswered` · `isSelected` · `selectOption` |
+| 48–61 | `isQuestionUnanswered` · `questionSectionClasses` (red border when highlight + unanswered) |
+| 63–77 | `scrollToName` · `scrollToSubmit` · `focusSubmitButton` (Enter on name → focus Submit) |
+| 79–128 | `handleSubmit` — clear name/submit errors and highlight · trim name (empty → `nameError` + scroll to name) · if not `allAnswered`: `submitError` + `showUnansweredHighlight` + scroll first unanswered section · else `submitExam()` · `catch`: `409`/`400` name messages → `nameError` + scroll name; other → `submitError` + scroll submit area |
+| 130–158 | `optionCardClasses` / `indicatorClasses` / `optionTextClasses` |
+
+#### `<template>`
+
+| Part | What it does |
+|------|--------|
+| Root | `loadError` amber banner · header + `ref="nameBlockRef"` name field (`nameError`, `aria-*`, Enter → `focusSubmitButton`) |
+| Questions | `v-for` sections with `:ref` → `setSectionRef`, `questionSectionClasses`, in-card alert when highlight + unanswered |
+| Submit | `ref="submitSectionRef"` · `submitError` above button (`animate-pulse` when `showUnansweredHighlight`) · `ref="submitBtnRef"` on button |
+
+#### `<style scoped>`
 
 | Lines | What it does |
 |--------|--------|
-| 1–4 | Import `ref`, `computed`, `onMounted`, `nextTick` from Vue · `storeToRefs` from Pinia · `useExamStore` |
-| 6–7 | Create `exam` · `storeToRefs(exam)` → `candidateName`, `questions`, `answers`, `loadState`, `loadError` |
-| 9–13 | `formError` · `showUnansweredHighlight` · `sectionRefs` map · `setSectionRef(questionId, el)` for `:ref` callbacks |
-| 23–25 | `onMounted(() => exam.loadQuestions())` |
-| 27–30 | `allAnswered` (computed) — false if no questions; else every `q.id` has a value in `answers` |
-| 32–42 | `isSelected` / `selectOption` / `isQuestionUnanswered` |
-| 44–52 | `questionSectionClasses` — default card chrome vs red border/background when highlight + unanswered |
-| 54–81 | `handleSubmit` — clear errors/highlight · trim name (empty → message, return) · if not `allAnswered`: set message + `showUnansweredHighlight`, `nextTick` + `scrollIntoView({ behavior: 'smooth', block: 'center' })` on first unanswered section, return · else `await exam.submitExam()` · `catch` maps fetch/TypeError to user-facing text |
-| 83–111 | `optionCardClasses` / `indicatorClasses` / `optionTextClasses` — Tailwind class arrays for choice UI |
-| 112 | Close `</script>` |
-
-#### `<template>` — lines 114–250
-
-| Lines | What it does |
-|--------|--------|
-| 115–117 | Root `div` (`min-h-screen`, `bg-background`) · `<main>` `max-w-3xl`, padding |
-| 118–124 | `v-if="loadError"` — amber alert, `role="status"` |
-| 125–161 | Header + candidate name: badge, title, module line · `input#candidate-name` · focus underline |
-| 163–172 | Loading spinner + copy |
-| 175–217 | `v-else` question list: each `section` has `:id`, `:ref` → `setSectionRef`, `:class="questionSectionClasses(q.id)"` · options loop · `v-if` in-card alert when highlight + unanswered |
-| 219–240 | Submit block: `formError` with `animate-pulse` · Submit button |
-| 241–249 | Fixed blur decorations |
-
-#### `<style scoped>` — lines 252–260
-
-| Lines | What it does |
-|--------|--------|
-| 252–260 | `.material-symbols-outlined` — `font-variation-settings` |
+| End of file | `.material-symbols-outlined` — `font-variation-settings` |
 
 ### 7. Result view — `frontend/src/views/ResultView.vue`
 
@@ -155,26 +150,26 @@ Same file as in the repo — split by `<script>` / `<template>` / `<style>` bloc
 | 12–20 | struct `ExamHTTP`, constructor |
 | 22–29 | `GetQuestions` → use case → `{ "questions": ... }` |
 | 32–36 | `SubmitBody` — `candidateName`, `answers` |
-| 38–55 | `Submit` — bind JSON, require non-empty `answers` → use case → 200 |
-| 58–71 | `GetLeaderboard` — query `limit` (optional) → `{ "entries": ... }` |
+| 38–64 | `Submit` — bind JSON, require non-empty `answers` → `SubmitExam` → `errors.Is` แมป `ErrCandidateNameRequired` → 400, `ErrDuplicateCandidateName` → 409, อื่น → 500 |
+| 66+ | `GetLeaderboard` — query `limit` (optional) → `{ "entries": ... }` |
 
-### 12. Business rules — `backend/internal/usecase/exam_usecase.go`
+### 12. Business rules — `backend/internal/usecase/exam_usecase.go` + `errors.go`
 
 | Lines (approx.) | What it does |
 |---------------------|--------|
 | 12–20 | struct `Exam` references `QuestionStore`, `ExamResultStore` (interfaces from `ports.go`) |
+| `errors.go` | `ErrCandidateNameRequired`, `ErrDuplicateCandidateName` |
 | 23–52 | DTOs for API + `SubmitResponse` + `LeaderboardEntryDTO` |
 | 54–74 | `GetQuestions` — map `Question` → DTO **without answers** |
-| 76–105 | `SubmitExam` — load questions → `ScoreAnswers` → build `ExamResult` + `SaveExamResult` |
-| 107–125 | `GetLeaderboard` — load from store → assign `rank`, format `CreatedAt` as RFC3339 |
-| 127–137 | `normalizeLeaderboardLimit` — default and max cap at 20 |
-| 139–149 | `ScoreAnswers` — compare `answers["id"]` to `CorrectOptionID` |
+| 76–118 | `SubmitExam` — `strings.TrimSpace` ชื่อ → empty → error · load questions → `ScoreAnswers` → `CandidateNameExists` → ซ้ำ → error · build `ExamResult` + `SaveExamResult` |
+| 120+ | `GetLeaderboard` — load from store → assign `rank`, format `CreatedAt` as RFC3339 |
+| | `normalizeLeaderboardLimit` · `ScoreAnswers` |
 
 ### 13. Use case ports — `backend/internal/usecase/ports.go`
 
 | Lines | What it does |
 |--------|--------|
-| 9–17 | `QuestionStore`, `ExamResultStore` (`SaveExamResult`, `GetLeaderboard`) — repository implements |
+| 9–18 | `QuestionStore`, `ExamResultStore` (`CandidateNameExists`, `SaveExamResult`, `GetLeaderboard`) — repository implements |
 
 ### 14. DB models — `backend/internal/models/question.go`, `exam_result.go`
 
@@ -189,7 +184,7 @@ Same file as in the repo — split by `<script>` / `<template>` / `<style>` bloc
 | `migrate.go` | `AutoMigrate` Question, Option, ExamResult |
 | `seed.go` | `EnsureSeedQuestions`, `seedQuestions()` — sample questions for API |
 | `question_gorm.go` | `GetQuestions` — `Preload("Options")`, `Order("sort_order")` |
-| `exam_result_gorm.go` | `SaveExamResult` — `Create` · `GetLeaderboard` — `ORDER BY score DESC`, `created_at ASC`, `Limit` |
+| `exam_result_gorm.go` | `CandidateNameExists` — `WHERE candidate_name = ?` · `SaveExamResult` — `Create` · `GetLeaderboard` — `ORDER BY score DESC`, `created_at ASC`, `Limit` |
 
 ### 16. Use case tests — `backend/internal/usecase/exam_usecase_test.go`
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -49,7 +50,14 @@ func (h *ExamHTTP) Submit(c *gin.Context) {
 
 	res, err := h.uc.SubmitExam(c.Request.Context(), body.CandidateName, body.Answers)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit"})
+		switch {
+		case errors.Is(err, usecase.ErrCandidateNameRequired):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณากรอกชื่อผู้สอบ"})
+		case errors.Is(err, usecase.ErrDuplicateCandidateName):
+			c.JSON(http.StatusConflict, gin.H{"error": "ชื่อนี้ถูกใช้ส่งข้อสอบแล้ว — กรุณาใช้ชื่ออื่น"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, res)
