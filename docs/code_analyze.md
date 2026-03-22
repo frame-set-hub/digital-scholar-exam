@@ -118,7 +118,7 @@
 | | 17–19 | `onMounted` → `loadLeaderboard()` |
 | | 20–23 | computed: อันดับ 1–3 และแถวที่เหลือ (`slice(3)`) |
 | | 25–39 | `formatScore` / `formatDate` · `backToExam` → `resetExam()` |
-| `<template>` | ~50+ | หัวข้อ + hint เมื่อไม่มีชื่อใน store · การ์ด **Me** เหนือ podium เมื่อมี `leaderboardYourEntry` · podium · รายการ · ปุ่ม Back to Exam |
+| `<template>` | ~50+ | หัวข้อ · การ์ด **Me** เหนือ podium เมื่อมี `leaderboardYourEntry` · podium · รายการ · ปุ่ม Back to Exam |
 | `<style scoped>` | ท้ายไฟล์ | gradient อันดับ 1–3, Material Symbols |
 
 ---
