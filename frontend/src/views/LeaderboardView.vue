@@ -1,14 +1,32 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
+const route = useRoute()
 const exam = useExamStore()
 const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry } = storeToRefs(exam)
 
+/** อ่าน `?forCandidate=` จาก route โดยตรง — ตรงกับที่ curl / แชร์ลิงก์ใช้ ไม่ผ่าน router ใน store */
+function candidateFromRoute() {
+  const raw = route.query.forCandidate
+  const q = Array.isArray(raw) ? raw[0] : raw
+  return typeof q === 'string' ? q.trim() : ''
+}
+
 onMounted(() => {
-  exam.loadLeaderboard()
+  const q = candidateFromRoute()
+  exam.loadLeaderboard(q || undefined)
 })
+
+watch(
+  () => route.query.forCandidate,
+  () => {
+    const q = candidateFromRoute()
+    exam.loadLeaderboard(q || undefined)
+  }
+)
 
 const firstPlace = computed(() => leaderboard.value[0])
 const secondPlace = computed(() => leaderboard.value[1])

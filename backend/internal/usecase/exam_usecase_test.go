@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -277,6 +278,54 @@ func TestExam_GetLeaderboard_ForCandidate_InTopList(t *testing.T) {
 	assert.NoError(t, err)
 	require.NotNil(t, your)
 	assert.True(t, your.InTopList)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_NotFound(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Other", Score: 3, Total: 3, CreatedAt: t0},
+	}, nil)
+	mr.On("CandidateRank", mock.Anything, "Nobody").Return(0, models.ExamResult{}, false, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "Nobody")
+	assert.NoError(t, err)
+	assert.Nil(t, your)
+	assert.Len(t, entries, 1)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_WhitespaceOnly(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Me", Score: 3, Total: 3, CreatedAt: t0},
+	}, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "   \t")
+	assert.NoError(t, err)
+	assert.Nil(t, your)
+	assert.Len(t, entries, 1)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_CandidateRank_error(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "X", Score: 1, Total: 7, CreatedAt: t0},
+	}, nil)
+	mr.On("CandidateRank", mock.Anything, "Me").Return(0, models.ExamResult{}, false, errors.New("db error"))
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	_, _, err := ex.GetLeaderboard(context.Background(), 0, "Me")
+	require.Error(t, err)
 
 	mr.AssertExpectations(t)
 }

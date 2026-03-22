@@ -14,7 +14,7 @@ Base URL (dev): `http://localhost:8080`
 
 - Query (optional): `limit` — จำนวนอันดับสูงสุด (ค่าเริ่มต้น 20, สูงสุด 20)
 - Query (optional): `forCandidate` — ชื่อผู้สอบ (URL-encoded) เพื่อขอ **อันดับรวม** ของชื่อนั้นใน response ฟิลด์ `yourEntry` (เมื่อมีผลใน DB)  
-  ถ้าเรียกแค่ `/api/leaderboard` โดยไม่มีพารามิเตอร์นี้ จะได้เฉพาะ `entries` — ไม่มี `yourEntry` (การทดสอบด้วย curl ต้องใส่ เช่น `?forCandidate=mock_zero`)
+  ถ้าเรียกแค่ `/api/leaderboard` โดยไม่มีพารามิเตอร์นี้ ฟิลด์ `yourEntry` จะเป็น `null` (การทดสอบด้วย curl ใส่ `?forCandidate=mock_zero` เพื่อให้ได้อ็อบเจ็กต์)
 - Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`  
   เมื่อมี `forCandidate` และพบผล: เพิ่ม `yourEntry`: `{ "rank", "candidateName", "score", "total", "createdAt", "inTopList" }`  
   — `inTopList` = `true` เมื่ออันดับรวมอยู่ในช่วง `limit` แถวแรก (เทียบกับรายการที่ส่งใน `entries`); `false` เมื่ออยู่นอกช่วง (เช่น อันดับ 21 ขึ้นไปเมื่อ `limit=20`)

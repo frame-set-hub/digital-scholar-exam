@@ -64,22 +64,30 @@ export const useExamStore = defineStore('exam', () => {
     return loadQuestionsInflight
   }
 
-  /** ชื่อสำหรับ yourEntry: Pinia ก่อน แล้ว fallback `?forCandidate=` บน URL (กัน refresh / แชร์ลิงก์) */
+  /** ชื่อสำหรับ yourEntry: `?forCandidate=` บน URL ก่อน (ตั้งใจจากลิงก์/แชร์) แล้วค่อย Pinia */
   function resolveLeaderboardCandidateName() {
-    const fromStore = (candidateName.value && String(candidateName.value).trim()) || ''
-    if (fromStore) return fromStore
     const raw = router.currentRoute.value.query.forCandidate
     const q = Array.isArray(raw) ? raw[0] : raw
-    return typeof q === 'string' ? q.trim() : ''
+    const fromQuery = typeof q === 'string' ? q.trim() : ''
+    if (fromQuery) return fromQuery
+    return (candidateName.value && String(candidateName.value).trim()) || ''
   }
 
-  /** GET /api/leaderboard — ส่ง forCandidate เมื่อมีชื่อจาก store หรือจาก query เพื่อขอ yourEntry */
-  async function loadLeaderboard() {
+  /**
+   * GET /api/leaderboard — ส่ง forCandidate เพื่อขอ yourEntry
+   * @param {string} [explicitForCandidate] — ส่งจาก LeaderboardView จาก route.query (ตัดปัญหา store ชนคิวกับ URL / router ใน store)
+   */
+  async function loadLeaderboard(explicitForCandidate) {
     leaderboardState.value = 'loading'
     leaderboardError.value = null
     leaderboardYourEntry.value = null
     try {
-      const name = resolveLeaderboardCandidateName()
+      let name = ''
+      if (typeof explicitForCandidate === 'string' && explicitForCandidate.trim()) {
+        name = explicitForCandidate.trim()
+      } else {
+        name = resolveLeaderboardCandidateName()
+      }
       const q =
         name.length > 0
           ? `?forCandidate=${encodeURIComponent(name)}`
