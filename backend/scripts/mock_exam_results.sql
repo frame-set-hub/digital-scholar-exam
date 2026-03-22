@@ -2,6 +2,8 @@
 -- Run from repo: sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql
 -- Prefer stopping the API first so the DB is not locked for write.
 -- To wipe all results first: clear_exam_results.sql
+--
+-- อย่ารันสคริปต์นี้ซ้ำโดยไม่ clear ก่อน — แต่ละครั้งจะ INSERT เพิ่ม ทำให้ชื่อซ้ำหลายแถวใน Leaderboard (ข้อมูลไม่ตรงกับกฎห้ามชื่อซ้ำตอน submit)
 
 INSERT INTO exam_results (candidate_name, score, total, answers_json, created_at) VALUES
 (

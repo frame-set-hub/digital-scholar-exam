@@ -4,13 +4,14 @@ import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
 const exam = useExamStore()
-const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry } = storeToRefs(exam)
+const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry, candidateName } =
+  storeToRefs(exam)
 
-/** แสดงแถบเมื่อมีอันดับรวมแต่ไม่อยู่ในช่วง top N ที่ API ส่งมา (ค่าเริ่ม N=20) */
-const showYourPositionStrip = computed(() => {
-  const y = leaderboardYourEntry.value
-  if (!y || y.inTopList) return false
-  return leaderboard.value.length > 0
+/** แสดงคำแนะนำเมื่อไม่มีชื่อใน store จึงไม่มีการ์ด Me (API ไม่ได้รับ forCandidate) */
+const showMeHint = computed(() => {
+  if (leaderboardState.value !== 'idle') return false
+  if (leaderboardYourEntry.value) return false
+  return !(candidateName.value || '').trim()
 })
 
 onMounted(() => {
@@ -73,6 +74,16 @@ function backToExam() {
           Leaderboard
         </h1>
         <p class="text-base font-medium text-secondary sm:text-lg">Top scorers for Exam IT 10-1</p>
+        <p
+          v-if="showMeHint"
+          class="mx-auto mt-4 max-w-xl text-pretty text-xs leading-relaxed text-secondary"
+        >
+          To show the <strong>Me</strong> card with your global rank, use your name on the exam and open Leaderboard from your result (or call
+          <code class="rounded bg-surface-container-highest px-1.5 py-0.5 font-mono text-[0.7rem] text-on-surface"
+            >/api/leaderboard?forCandidate=…</code
+          >
+          ).
+        </p>
       </div>
 
       <div v-if="leaderboardState === 'loading'" class="py-20 text-center font-medium text-secondary">
@@ -85,6 +96,41 @@ function backToExam() {
         {{ leaderboardError }}
       </div>
       <template v-else>
+        <!-- Me: ตำแหน่งของคุณ — ด้านบน podium (ต้องโหลดด้วยชื่อใน store → API ส่ง ?forCandidate=...) -->
+        <div
+          v-if="leaderboardYourEntry"
+          class="mx-auto mb-8 max-w-3xl overflow-hidden rounded-2xl border-2 border-primary/35 bg-gradient-to-br from-primary/5 to-surface-container-low px-4 py-4 shadow-md sm:px-6 sm:py-5"
+          role="region"
+          aria-label="Your position"
+        >
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+          >
+            <div class="flex items-center justify-center gap-2 sm:justify-start">
+              <span
+                class="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-on-primary"
+                >Me</span
+              >
+              <span class="material-symbols-outlined text-2xl text-primary" aria-hidden="true">person</span>
+            </div>
+            <div class="min-w-0 flex-1 text-center sm:text-right">
+              <p class="truncate font-display text-lg font-bold text-on-surface">
+                {{ leaderboardYourEntry.candidateName }}
+              </p>
+              <p class="mt-1 text-base font-semibold text-on-surface">
+                Rank <span class="font-black text-primary">#{{ leaderboardYourEntry.rank }}</span>
+                · {{ formatScore(leaderboardYourEntry) }} points
+              </p>
+            </div>
+          </div>
+          <p v-if="leaderboardYourEntry.inTopList" class="mt-3 text-center text-sm text-secondary sm:text-left">
+            You’re in the top 20 — find your row in the list below.
+          </p>
+          <p v-else class="mt-3 text-center text-sm font-medium text-amber-900 sm:text-left">
+            Not in the top 20 below — this is your global rank (e.g. 0 points places after everyone with a higher score).
+          </p>
+        </div>
+
         <div v-if="leaderboard.length === 0" class="py-16 text-center font-medium text-secondary">
           No exam results yet.
         </div>
@@ -214,23 +260,6 @@ function backToExam() {
               <p class="text-[10px] font-bold uppercase tracking-tighter text-secondary">Points Scored</p>
             </div>
           </div>
-        </div>
-
-        <div
-          v-if="showYourPositionStrip && leaderboardYourEntry"
-          class="mx-auto mb-8 max-w-3xl rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4 sm:px-6 sm:py-5"
-          role="status"
-        >
-          <p class="text-center font-display text-sm font-bold uppercase tracking-wide text-primary sm:text-base">
-            Your position
-          </p>
-          <p class="mt-2 text-center text-base font-semibold text-on-surface sm:text-lg">
-            Rank <span class="font-black text-primary">#{{ leaderboardYourEntry.rank }}</span>
-            · {{ formatScore(leaderboardYourEntry) }} points
-          </p>
-          <p class="mt-2 text-center text-xs text-secondary sm:text-sm">
-            Global ranking — the list above shows at most 20 entries.
-          </p>
         </div>
 
         <div class="mt-10 flex justify-center px-1 sm:mt-14">

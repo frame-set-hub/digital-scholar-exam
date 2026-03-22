@@ -113,12 +113,12 @@
 | ส่วน | บรรทัด (โดยประมาณ) | ทำอะไร |
 |------|---------------------|--------|
 | `<script setup>` | 1–4 | import Vue, Pinia, `useExamStore` |
-| | 6–8 | `storeToRefs` — `leaderboard`, `leaderboardState`, `leaderboardError`, `leaderboardYourEntry` |
-| | 10–14 | `showYourPositionStrip` — แสดงเมื่อมี `yourEntry` และ `!inTopList` และมีรายการ |
-| | 16–18 | `onMounted` → `loadLeaderboard()` |
+| | 7–8 | `storeToRefs` — รวม `leaderboardYourEntry`, `candidateName` |
+| | 10–15 | `showMeHint` — แสดงคำแนะนำเมื่อไม่มีชื่อใน store (จึงไม่มี `forCandidate`) |
+| | 17–19 | `onMounted` → `loadLeaderboard()` |
 | | 20–23 | computed: อันดับ 1–3 และแถวที่เหลือ (`slice(3)`) |
 | | 25–39 | `formatScore` / `formatDate` · `backToExam` → `resetExam()` |
-| `<template>` | ~45+ | Header + สถานะโหลด/error/ว่าง · podium · รายการรองลงมา · แถบ **Your position** เมื่ออยู่นอก top N · ปุ่ม Back to Exam |
+| `<template>` | ~50+ | หัวข้อ + hint เมื่อไม่มีชื่อใน store · การ์ด **Me** เหนือ podium เมื่อมี `leaderboardYourEntry` · podium · รายการ · ปุ่ม Back to Exam |
 | `<style scoped>` | ท้ายไฟล์ | gradient อันดับ 1–3, Material Symbols |
 
 ---
