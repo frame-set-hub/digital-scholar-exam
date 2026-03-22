@@ -1,3 +1,22 @@
+<p align="center">
+  <h2 align="center">📚 Digital Scholar Exam</h2>
+  <p align="center">
+    Single-page exam + leaderboard — <strong>Vue 3</strong> frontend and <strong>Go</strong> API with pragmatic clean architecture (Pinia, Gin, GORM, SQLite).
+  </p>
+  <p align="center">
+    <img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" />
+    <img src="https://img.shields.io/badge/Gin-1.10-00ADD8?style=for-the-badge" alt="Gin" />
+    <img src="https://img.shields.io/badge/GORM-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="GORM SQLite" />
+    <img src="https://img.shields.io/badge/Vue.js-3-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue 3" />
+    <img src="https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+    <img src="https://img.shields.io/badge/Pinia-3-FFD859?style=for-the-badge&logo=pinia&logoColor=black" alt="Pinia" />
+    <img src="https://img.shields.io/badge/Vue_Router-5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue Router" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  </p>
+</p>
+
+---
+
 # Architecture & Tech Stack (Full Stack)
 
 ## Table of contents
