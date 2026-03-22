@@ -1,89 +1,88 @@
 # Architecture & Tech Stack (Full Stack)
 
-## Table of contents
+## สารบัญ
 
 - [Architecture \& Tech Stack (Full Stack)](#architecture--tech-stack-full-stack)
-  - [Table of contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Application flow (user → system)](#application-flow-user--system)
-  - [Backend use case flow](#backend-use-case-flow)
-  - [Data flow](#data-flow)
-  - [API contract summary (`api.md`)](#api-contract-summary-apimd)
-  - [Diagram — Frontend relationships](#diagram--frontend-relationships)
-  - [Diagram — Backend request sequence](#diagram--backend-request-sequence)
-  - [Frontend tech stack](#frontend-tech-stack)
-  - [Trade-off: Node.js + npm vs Bun (frontend tooling)](#trade-off-nodejs--npm-vs-bun-frontend-tooling)
-  - [Backend tech stack](#backend-tech-stack)
-  - [Why Vue 3 + Pinia](#why-vue-3--pinia)
-  - [Why Go + Gin + SQLite](#why-go--gin--sqlite)
-  - [Frontend folder layout](#frontend-folder-layout)
-  - [Backend folder layout (Pragmatic Clean Architecture)](#backend-folder-layout-pragmatic-clean-architecture)
-  - [Frontend and backend communication](#frontend-and-backend-communication)
+  - [สารบัญ](#สารบัญ)
+  - [ภาพรวม](#ภาพรวม)
+  - [Flow การทำงานของโปรแกรม (ผู้ใช้ → ระบบ)](#flow-การทำงานของโปรแกรม-ผู้ใช้--ระบบ)
+  - [Flow usecase ฝั่ง Backend](#flow-usecase-ฝั่ง-backend)
+  - [Flow การไหลของข้อมูล (Data flow)](#flow-การไหลของข้อมูล-data-flow)
+  - [สรุปเทียบสัญญา API (`api.md`)](#สรุปเทียบสัญญา-api-apimd)
+  - [Diagram — ความสัมพันธ์ Frontend](#diagram--ความสัมพันธ์-frontend)
+  - [Diagram — ลำดับคำขอ Backend](#diagram--ลำดับคำขอ-backend)
+  - [Tech Stack ฝั่ง Frontend](#tech-stack-ฝั่ง-frontend)
+  - [Tech Stack ฝั่ง Backend](#tech-stack-ฝั่ง-backend)
+  - [เหตุผลที่เลือก Vue 3 + Pinia](#เหตุผลที่เลือก-vue-3--pinia)
+  - [เหตุผลที่เลือก Go + Gin + SQLite](#เหตุผลที่เลือก-go--gin--sqlite)
+  - [โครงสร้างโฟลเดอร์ Frontend](#โครงสร้างโฟลเดอร์-frontend)
+  - [โครงสร้างโฟลเดอร์ Backend (Pragmatic Clean Architecture)](#โครงสร้างโฟลเดอร์-backend-pragmatic-clean-architecture)
+  - [การสื่อสารระหว่าง FE / BE](#การสื่อสารระหว่าง-fe--be)
 
-## Overview
+## ภาพรวม
 
-The system consists of a **Frontend SPA** (Vue 3) where candidates enter a name, take a single-choice exam, and view their score, and a **Backend API** (Go + Gin) that stores questions/answers in SQLite, accepts submissions, computes scores on the server, and persists exam results.
+ระบบประกอบด้วย **SPA ฝั่ง Frontend** (Vue 3) สำหรับผู้สอบกรอกชื่อ ทำข้อสอบแบบเลือกคำตอบเดียว และดูผลคะแนน และ **API ฝั่ง Backend** (Go + Gin) ที่จัดเก็บข้อสอบ/เฉลยใน SQLite รับการส่งข้อสอบ คำนวณคะแนนที่ฝั่งเซิร์ฟเวอร์ และบันทึกผลการสอบ
 
-The frontend separates UI (Vue), routing (Vue Router), and transient state (Pinia). The backend separates HTTP (Handler), business rules (Use case), and data access (Repository + GORM).
+ชั้น Frontend แยก UI (Vue), การนำทาง (Vue Router) และ state ชั่วคราว (Pinia) ชั้น Backend แยก HTTP (Handler), กฎธุรกิจ (Usecase), และการเข้าถึงข้อมูล (Repository + GORM)
 
-**File-by-file reading with line numbers:** [code_analyze.md](./code_analyze.md)  
-**Endpoints and JSON examples:** [api.md](./api.md)
+**อ่านโค้ดทีละไฟล์และเลขบรรทัด:** [code_analyze.md](./code_analyze.md)  
+**Endpoint และตัวอย่าง JSON:** [api.md](./api.md)
 
-## Application flow (user → system)
+## Flow การทำงานของโปรแกรม (ผู้ใช้ → ระบบ)
 
-1. User opens the site → Vite loads the bundle from `main.js` → `App.vue` → `RouterView` for the path
-2. Path `/` loads `ExamView` → `onMounted` calls **`GET /api/questions`** (via `examStore.loadQuestions()`)
-3. **Success:** questions stored in Pinia  
-   **Failure:** clear `questions`, set `loadError`, show a message — no offline question set
-4. User enters name and selects answers → `setAnswer` updates `answers`
-5. Submit → validate name and all questions answered → **`POST /api/submit`** with `{ candidateName, answers }` → receive `score` from server → navigate to `/result`
-6. `ResultView` shows name and score → **View Leaderboard** → `/leaderboard` → `LeaderboardView` calls **`GET /api/leaderboard`** (`loadLeaderboard`) or **Retake** → `resetExam()`
-7. `LeaderboardView` button **Back to Exam** → `resetExam()` (clears name/answers/score/leaderboard, returns to `/` — does not clear questions to avoid redundant `GET /api/questions`)
+1. ผู้ใช้เปิดเว็บ → Vite โหลด bundle จาก `main.js` → แสดง `App.vue` → `RouterView` ตาม path
+2. Path `/` โหลด `ExamView` → `onMounted` เรียก **`GET /api/questions`** (ผ่าน `examStore.loadQuestions()`)
+3. **สำเร็จ:** เก็บรายการคำถามใน Pinia  
+   **ล้มเหลว:** เคลียร์ `questions`, ตั้ง `loadError`, แสดงข้อความแจ้งเตือน — ไม่มีข้อสอบในเครื่อง
+4. ผู้ใช้กรอกชื่อและเลือกคำตอบ → `setAnswer` อัปเดต `answers`
+5. กดส่ง → ตรวจชื่อและครบทุกข้อ → **`POST /api/submit`** พร้อม `{ candidateName, answers }` → ได้ `score` จากเซิร์ฟเวอร์ → นำทางไป `/result`
+6. `ResultView` แสดงชื่อและคะแนน → **View Leaderboard** → `/leaderboard` → `LeaderboardView` เรียก **`GET /api/leaderboard`** (`loadLeaderboard`) หรือ **Retake** → `resetExam()`
+7. `LeaderboardView` ปุ่ม **Back to Exam** → `resetExam()` (เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับ `/` — ไม่เคลียร์รายการข้อเพื่อลดการเรียก `GET /api/questions` ซ้ำ)
 
-**DevTools / duplicate API calls:** see [api.md](./api.md)
+**Troubleshooting DevTools / การเรียก API ซ้ำ:** ดู [api.md](./api.md)
 
-## Backend use case flow
+## Flow usecase ฝั่ง Backend
 
-| Step | Owner | What happens |
+| ขั้น | ผู้รับผิดชอบ | สิ่งที่เกิดขึ้น |
 |------|----------------|------------------|
-| HTTP | `handler.ExamHTTP` | Accept request, bind JSON, HTTP status |
-| Business rules | `usecase.Exam` | `GetQuestions`: load from store → map to DTO **without answers** |
-| | | `SubmitExam`: load questions with answers from DB → `ScoreAnswers` → build `ExamResult` (including answer JSON) → `SaveExamResult` |
-| | | `GetLeaderboard`: load `ExamResult` from store → map to `LeaderboardEntryDTO` (does not include `answers`) |
-| Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite — `GetLeaderboard` sorts by `score DESC`, `created_at ASC` |
+| HTTP | `handler.ExamHTTP` | รับ request, bind JSON, สถานะ HTTP |
+| กฎธุรกิจ | `usecase.Exam` | `GetQuestions`: ดึงจาก store → แปลงเป็น DTO **ไม่ส่งเฉลย** |
+| | | `SubmitExam`: ดึงคำถามพร้อมเฉลยจาก DB → `ScoreAnswers` → สร้าง `ExamResult` (รวม JSON คำตอบ) → `SaveExamResult` |
+| | | `GetLeaderboard`: ดึง `ExamResult` จาก store → map เป็น `LeaderboardEntryDTO` (ไม่ส่ง `answers`) |
+| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite — `GetLeaderboard` เรียง `score DESC`, `created_at ASC` |
 
-## Data flow
+## Flow การไหลของข้อมูล (Data flow)
 
-**Load questions (GET)**
+**อ่านข้อสอบ (GET)**
 
-- **DB:** `questions` + `options` tables (`correct_option_id` per question — not exposed via API)
-- **Repository** → **Use case** strips answers → **Handler** → JSON `{ "questions": [...] }`
-- **Frontend** stores in `examStore.questions` for display and `answers`
+- **DB:** ตาราง `questions` + `options` (มี `correct_option_id` ที่ข้อ — ไม่ส่งออก API)
+- **Repository** → **Usecase** ตัดเฉลยออก → **Handler** → JSON `{ "questions": [...] }`
+- **Frontend** เก็บใน `examStore.questions` สำหรับแสดงและเก็บ `answers`
 
-**Submit (POST)**
+**ส่งข้อสอบ (POST)**
 
-- **Frontend** sends `candidateName` and `answers` (keys are string question ids)
-- **Use case** loads questions + answers from DB as before → compares to `answers` → `score`, `total`
-- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`)
+- **Frontend** ส่ง `candidateName` และ `answers` (คีย์เป็น string ของ question id)
+- **Usecase** โหลดชุดคำถาม+เฉลยจาก DB เหมือนเดิม → เปรียบเทียบกับ `answers` → ได้ `score`, `total`
+- **DB:** `INSERT` ลง `exam_results` (ชื่อ, คะแนน, รวมข้อ, `answers_json`)
 
-**Leaderboard (GET)**
+**กระดานอันดับ (GET)**
 
-- **DB:** reads `exam_results` — sorted by highest score first; ties broken by earliest `created_at`
-- **Repository** → **Use case** assigns `rank` and strips deep data → **Handler** → JSON `{ "entries": [...] }`
-- **Frontend** stores in `examStore.leaderboard` for `LeaderboardView`
+- **DB:** อ่าน `exam_results` — เรียงคะแนนสูงสุดก่อน ถ้าคะแนนเท่ากันให้ `created_at` เก่าก่อน (สอบก่อนอยู่บน)
+- **Repository** → **Usecase** ใส่ `rank` และตัดข้อมูลลึก → **Handler** → JSON `{ "entries": [...] }`
+- **Frontend** เก็บใน `examStore.leaderboard` สำหรับ `LeaderboardView`
 
-## API contract summary (`api.md`)
+## สรุปเทียบสัญญา API (`api.md`)
 
-| Topic | Status |
+| หัวข้อ | สถานะ |
 |--------|--------|
-| `GET /api/questions` does not send `correctOptionId` | OK — use case DTO has no answer fields |
-| `POST /api/submit` body `candidateName`, `answers` (string keys) | OK |
-| Response `{ candidateName, score, total }` | OK — result view uses `score` and `totalQuestions` (= loaded count), which should align with `total` |
-| `GET /api/leaderboard` → `{ entries: LeaderboardEntryDTO[] }` | OK — ranked from `exam_results` sorted by score descending then `created_at` ascending |
+| `GET /api/questions` ไม่ส่ง `correctOptionId` | ตรง — DTO ใน usecase ไม่มีฟิลด์เฉลย |
+| `POST /api/submit` body `candidateName`, `answers` (คีย์ string) | ตรง |
+| Response `{ candidateName, score, total }` | ตรง — หน้าผลใช้ `score` และ `totalQuestions` (= จำนวนข้อที่โหลด) ซึ่งควรสอดคล้อง `total` |
+| `GET /api/leaderboard` → `{ entries: LeaderboardEntryDTO[] }` | ตรง — อันดับจาก `exam_results` เรียงคะแนนมากไปน้อย แล้ว `created_at` เก่าก่อน |
 
-Details and examples: [api.md](./api.md)
+รายละเอียดและตัวอย่าง: [api.md](./api.md)
 
-## Diagram — Frontend relationships
+## Diagram — ความสัมพันธ์ Frontend
 
 ```mermaid
 flowchart LR
@@ -115,7 +114,7 @@ flowchart LR
   L -->|resetExam| LB
 ```
 
-## Diagram — Backend request sequence
+## Diagram — ลำดับคำขอ Backend
 
 ```mermaid
 sequenceDiagram
@@ -154,87 +153,69 @@ sequenceDiagram
   H-->>C: JSON entries
 ```
 
-## Frontend tech stack
+## Tech Stack ฝั่ง Frontend
 
-| Technology | Role |
+| เทคโนโลยี | บทบาท |
 |-----------|--------|
 | **Vue 3** | UI framework — Composition API + `<script setup>` |
-| **Vite** | Build and dev server |
-| **Tailwind CSS** | Utility-first styling, responsive, mobile-first |
-| **Vue Router** | Routes: `/` (exam), `/result` (score), `/leaderboard` (rankings) |
-| **Pinia** | State: candidate name, questions, answers, score, leaderboard — loads questions and rankings from API only |
-| **Node.js + npm** | Dev and build toolchain for Vite (see trade-off below) |
+| **Vite** | build และ dev server |
+| **Tailwind CSS** | สไตล์ utility-first, responsive, mobile-first |
+| **Vue Router** | เส้นทาง `/` (ทำข้อสอบ), `/result` (ผล), `/leaderboard` (กระดานอันดับ) |
+| **Pinia** | state ชื่อผู้สอบ, คำถาม, คำตอบ, คะแนน, leaderboard — โหลดข้อสอบและอันดับจาก API เท่านั้น |
 
-## Trade-off: Node.js + npm vs Bun (frontend tooling)
+## Tech Stack ฝั่ง Backend
 
-For **Vue 3 + Vite** in this repo, we standardize on **Node.js with npm** as the **safe default** for development and CI-style builds.
-
-**Bun** has gained strong traction as an **all-in-one** toolkit: very fast package installs (often an order of magnitude quicker than npm in typical projects), a single binary for runtime + package manager, and **native TypeScript** execution without a separate compile step for many workflows. Those advantages matter for teams that commit to Bun end-to-end.
-
-**Why Node + npm here anyway**
-
-- **De facto ecosystem alignment** — Vite, Vue 3 docs, and most community plugins assume **Node** first. Staying on Node minimizes integration surprises (“works on Bun only”) for a learning / assessment codebase.
-- **Stability over novelty** — A newer runtime can still hit **edge cases** (native dependencies, scripts that shell out to `node`, subtle semver behavior). Node is the conservative choice for **predictable** contributor and reviewer experience.
-- **Standard commands, no extra install** — Graders and new contributors can follow **`npm install`** / **`npm run dev`** with only Node LTS, as documented in the root [README.md](../README.md) and [frontend/README.md](../frontend/README.md).
-
-Node remains the **majority default** in many orgs, tutorials, and base images; that overlap lowers onboarding friction even though Bun is a legitimate option elsewhere.
-
-**Summary:** Bun trades a bit of **maximum speed and consolidation** for **broader assumed compatibility** when you pick Node + npm — for this project we prioritize the latter. Teams comfortable owning compatibility checks may still adopt Bun locally; the app does not depend on Bun-specific APIs.
-
-## Backend tech stack
-
-| Technology | Role |
+| เทคโนโลยี | บทบาท |
 |-----------|--------|
-| **Go** | Language and runtime |
+| **Go** | ภาษาและ runtime |
 | **Gin** | HTTP router / middleware |
-| **GORM** | ORM for SQLite |
-| **SQLite** | Single-file DB (`backend/data/exam.db`) — zero extra install |
-| **testify** | `assert` + `mock` for use case unit tests |
+| **GORM** | ORM สำหรับ SQLite |
+| **SQLite** | ฐานข้อมูลไฟล์เดียว (`backend/data/exam.db`) — zero extra install |
+| **testify** | `assert` + `mock` สำหรับ unit test usecase |
 
-## Why Vue 3 + Pinia
+## เหตุผลที่เลือก Vue 3 + Pinia
 
-- **Vue 3** Composition API groups logic by feature clearly
-- **Pinia** keeps **exam** state out of components so `ExamView` / `ResultView` focus on UI and events
+- **Vue 3** มี Composition API ที่จัดกลุ่ม logic ตาม feature ได้ชัด
+- **Pinia** แยก state ของ **exam** ออกจากคอมโพเนนต์ ทำให้ `ExamView` / `ResultView` โฟกัสการแสดงผลและ event
 
-## Why Go + Gin + SQLite
+## เหตุผลที่เลือก Go + Gin + SQLite
 
-- **Go** — simple single-binary deploy, clear concurrency
-- **Gin** — widely used, middleware fits REST
-- **SQLite** — good for learning/demos — no separate DB server; can move to PostgreSQL when scaling
-- **Pragmatic Clean Architecture**: handler → use case → repository — test use cases with mock repositories without touching SQLite
+- **Go** deploy ง่าย binary เดียว, concurrency ชัดเจน
+- **Gin** เป็นที่นิยมใน community, middleware ครบสำหรับ REST
+- **SQLite** เหมาะกับโปรเจกต์เรียนรู้/สาธิต — ไม่ต้องติดตั้งเซิร์ฟเวอร์ DB แยก; ย้ายไป PostgreSQL ได้เมื่อต้องการ scale
+- โครงสร้าง **Pragmatic Clean Architecture**: handler → usecase → repository — ทดสอบ usecase ด้วย mock repository ได้โดยไม่ต้องแตะ SQLite
 
-## Frontend folder layout
+## โครงสร้างโฟลเดอร์ Frontend
 
-- `frontend/src/views/` — main screens per route
-- `frontend/src/components/` — reusable subcomponents
+- `frontend/src/views/` — หน้าจอหลักตาม route
+- `frontend/src/components/` — คอมโพเนนต์ย่อยที่ใช้ซ้ำ
 - `frontend/src/stores/` — Pinia (`examStore`)
-- `frontend/src/router/` — routes and meta (title)
-- `frontend/src/api/` — HTTP (`client.js`)
-- `frontend/src/assets/` — global CSS and Tailwind theme
+- `frontend/src/router/` — เส้นทางและ meta (title)
+- `frontend/src/api/` — เรียก HTTP (`client.js`)
+- `frontend/src/assets/` — CSS global และ Tailwind theme
 
-## Backend folder layout (Pragmatic Clean Architecture)
+## โครงสร้างโฟลเดอร์ Backend (Pragmatic Clean Architecture)
 
 ```
 backend/
-├── cmd/api/main.go          # entry, optional `.env` (PORT, DATABASE_DIR), SQLite, AutoMigrate, seed, DI, Gin
+├── cmd/api/main.go          # entry, SQLite path, AutoMigrate, seed, DI, Gin
 ├── internal/
 │   ├── models/              # Question, Option, ExamResult
 │   ├── repository/          # GORM: GetQuestions, SaveExamResult, GetLeaderboard, migrate, seed
 │   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers, GetLeaderboard
 │   └── handler/             # Gin: GET /api/questions, POST /api/submit, GET /api/leaderboard
-├── scripts/                 # optional dev SQL (mock/clear exam_results) — not under cmd/ (cmd = mains only)
 ├── go.mod
-└── data/exam.db             # created at run time (in .gitignore)
+└── data/exam.db             # สร้างเมื่อรัน (อยู่ใน .gitignore)
 ```
 
-- **Handler** — JSON in/out, minimal business logic
-- **Use case** — `GetQuestions` (map to DTO without answers), `SubmitExam` (load answers from DB → score → `SaveExamResult`), `GetLeaderboard` (ranked DTO without raw answers)
-- **Repository** — GORM/SQLite only — includes `GetLeaderboard` for reading `exam_results`
+- **Handler** รับ/ส่ง JSON ไม่มี business logic หนัก
+- **Usecase** รวม `GetQuestions` (map เป็น DTO ไม่ส่งเฉลย), `SubmitExam` (ดึงเฉลยจาก DB → คำนวณคะแนน → `SaveExamResult`), `GetLeaderboard` (DTO อันดับ ไม่ส่งคำตอบดิบ)
+- **Repository** คุยกับ GORM/SQLite เท่านั้น — รวม `GetLeaderboard` สำหรับอ่าน `exam_results`
 
-Endpoint details and JSON examples: [api.md](./api.md)
+รายละเอียด endpoint และตัวอย่าง JSON: [api.md](./api.md)
 
-## Frontend and backend communication
+## การสื่อสารระหว่าง FE / BE
 
-In short: API base `http://localhost:8080` — full tables and payloads in [api.md](./api.md)
+สรุปสั้น: API ฐาน `http://localhost:8080` — ดูตารางและ payload ฉบับเต็มใน [api.md](./api.md)
 
-More planning and roadmap: [planning.md](./planning.md)
+แผนงานและ roadmap เพิ่มเติม: [planning.md](./planning.md)

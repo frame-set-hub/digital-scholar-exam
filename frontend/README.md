@@ -1,6 +1,6 @@
 # Frontend (Vue 3)
 
-SPA for taking exams — architecture and flows are in **[`../docs/`](../docs/)** (not duplicated here)
+SPA สำหรับทำข้อสอบ — รายละเอียดสถาปัตยกรรมและ flow อยู่ที่ **[`../docs/`](../docs/)** (ไม่ซ้ำในไฟล์นี้)
 
 ## Prerequisites
 
@@ -8,21 +8,21 @@ SPA for taking exams — architecture and flows are in **[`../docs/`](../docs/)*
 
 ## Environment
 
-1. Copy [`.env.example`](./.env.example) to **`.env`** at the `frontend/` folder root (or from repo root: `cp frontend/.env.example frontend/.env`)
-2. Adjust `DEV_SERVER_PORT` (Vite dev server), `VITE_API_BASE_URL` (empty = use `/api` + proxy), and `API_PROXY_TARGET` (where the dev proxy forwards — match the backend `PORT`)
+1. คัดลอก [`.env.example`](./.env.example) เป็น **`.env`** ที่ root ของโฟลเดอร์ `frontend/`
+2. ปรับ `VITE_API_BASE_URL` (ว่าง = ใช้ `/api` + proxy) และ `API_PROXY_TARGET` (ที่ dev proxy ส่งต่อไป)
 
-**`.env` is gitignored** — not committed; only `.env.example` is the template
+ไฟล์ **`.env` ถูก gitignore** — ไม่ขึ้น commit; มีเฉพาะ `.env.example` เป็นต้นแบบ
 
 ## Commands
 
 ```bash
 npm install
-npm run dev          # port from DEV_SERVER_PORT in .env (default 5173); proxy /api → API_PROXY_TARGET
+npm run dev          # http://localhost:5173 — proxy /api → http://localhost:8080 (ต้องรัน backend ด้วย)
 npm run build
-npm run preview      # to test build against API, set VITE_API_BASE_URL in .env.production
+npm run preview      # ถ้าเทส build กับ API ให้ตั้ง VITE_API_BASE_URL ใน .env.production
 ```
 
-See [`.env.example`](./.env.example) — for `vite build` without a same-host reverse proxy, set `VITE_API_BASE_URL` to the backend
+ดู [`.env.example`](./.env.example) — ตอน `vite build` ถ้าไม่ใช้ reverse proxy ร่วม host ให้ตั้ง `VITE_API_BASE_URL` ชี้ backend
 
 ## Layout
 
@@ -30,4 +30,4 @@ See [`.env.example`](./.env.example) — for `vite build` without a same-host re
 
 ---
 
-[← Project root](../README.md) · [Full docs](../docs/README.md) · [API](../docs/api.md)
+[← กลับโปรเจกต์](../README.md) · [เอกสารทั้งระบบ](../docs/README.md) · [API](../docs/api.md)

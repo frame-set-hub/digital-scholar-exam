@@ -1,29 +1,22 @@
 # Backend (Go API)
 
-REST API + SQLite — architecture, **handler → use case → repository** layers, and the **full API table** live under **[`../docs/`](../docs/)**, especially [`../docs/api.md`](../docs/api.md)
+REST API + SQLite — รายละเอียดสถาปัตยกรรม, ชั้น **handler → usecase → repository**, และ **ตาราง API แบบเต็ม** อยู่ที่ **[`../docs/`](../docs/)** — โดยเฉพาะ [`../docs/api.md`](../docs/api.md)
 
 ## Prerequisites
 
-- Go 1.22+ (see `go.mod`)
-
-## Environment
-
-1. Copy [`.env.example`](./.env.example) to **`.env`** in `backend/` (or from repo root: `cp backend/.env.example backend/.env`)
-2. Optional keys: `PORT` (default `8080`), `DATABASE_DIR` (default `data/` under cwd). Values load from `.env` on startup via [`godotenv`](https://github.com/joho/godotenv); shell exports still win.
-
-**`.env` is gitignored** — only `.env.example` is committed.
+- Go 1.22+ (ดู `go.mod`)
 
 ## Commands
 
 ```bash
-go run ./cmd/api      # :8080 or PORT from .env / environment
+go run ./cmd/api      # default :8080, หรือตั้ง PORT
 go test ./... -count=1 -v
 ```
 
 ## Layout
 
-`cmd/api/main.go` · `internal/{handler,usecase,repository,models}` · `scripts/` (optional dev SQL — run commands in [root README](../README.md#mock-data-for-testing-the-leaderboard)) · `data/exam.db` (created automatically)
+`cmd/api/main.go` · `internal/{handler,usecase,repository,models}` · `data/exam.db` (สร้างอัตโนมัติ)
 
 ---
 
-[← Project root](../README.md) · [Full docs](../docs/README.md) · [API reference](../docs/api.md)
+[← กลับโปรเจกต์](../README.md) · [เอกสารทั้งระบบ](../docs/README.md) · [API reference](../docs/api.md)

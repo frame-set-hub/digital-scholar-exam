@@ -1,86 +1,70 @@
 # digital-scholar-exam
 
-Online exam system — **Frontend:** Vue 3 · **Backend:** Go + Gin + SQLite
+ระบบทำแบบทดสอบออนไลน์ — **Frontend:** Vue 3 · **Backend:** Go + Gin + SQLite
 
-## Documentation layout
+## แนวทางเอกสาร 
 
-| Layer | Purpose | Avoid |
-|------|---------|--------|
-| **[README.md](./README.md)** (this file) | Single entry to the repo: overview, quick start, folder map, links to `docs/` | Pasting long content from `docs/` or duplicating full API tables |
-| **[docs/](./docs/)** | In-depth **canonical** docs — architecture, flows, planning, testing, **[API Reference](./docs/api.md)** | — |
-| **`frontend/README.md`** / **`backend/README.md`** | Run commands for that package + links back to `docs/` — for people who `cd` into that folder | Duplicating architecture or long API tables |
-| **[execute.md](./execute.md)** | Phase / progress checklist | — |
-| **[RULE.md](./RULE.md)** | Rules for updating `.md` when code changes affect structure or behavior described in docs | — |
+| ชั้น | หน้าที่ | ไม่ควรทำ |
+|------|---------|-----------|
+| **[README.md](./README.md)** (ไฟล์นี้) | จุดเข้าเดียวของ repo: ภาพรวม, Quick start, แผนที่โฟลเดอร์, ลิงก์ไป `docs/` | คัดลอกเนื้อหายาวจาก `docs/` หรือทวนซ้ำ API แบบเต็ม |
+| **[docs/](./docs/)** | เอกสารเชิงลึก **แหล่งเดียว (canonical)** — สถาปัตยกรรม, flow, แผน, testing, **[API Reference](./docs/api.md)** | — |
+| **`frontend/README.md`** / **`backend/README.md`** | คำสั่งรันแพ็กเกจ + ลิงก์กลับ `docs/` — สำหรับคน `cd` เข้าโฟลเดอร์นั้น | ซ้ำสถาปัตยกรรมหรือตาราง API แบบยาว |
+| **[execute.md](./execute.md)** | Checklist Phase / progress งาน | — |
+| **[RULE.md](./RULE.md)** | กฎอัปเดตเอกสาร `.md` เมื่อการแก้โค้ดกระทบโครงสร้างหรือเนื้อหาที่เอกสารอธิบาย | — |
 
-This matches common monorepo practice: **repo home = navigation**, details live in `docs/`, subpackages have short READMEs.
+แนวทางนี้สอดคล้องกับโปรเจกต์ monorepo ทั่วไป: **หน้าแรกของ repo = นำทาง**, รายละเอียดอยู่ใน `docs/`, แพ็กเกจย่อยมี README บางๆ
 
 ## Quick start
 
-### One-time: copy env templates
+เปิด **สองเทอร์มินัล** (หรือรัน backend ก่อน แล้วค่อย frontend)
 
-From the **repository root** (defaults work for local dev — edit only if you change ports or API URLs):
-
-```bash
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env
-```
-
-Then open **two terminals** (or run the backend first, then the frontend).
-
-**Backend** — loads optional `backend/.env` (`PORT`, `DATABASE_DIR`); default listen **:8080**:
+**Backend** (port 8080):
 
 ```bash
 cd backend && go run ./cmd/api
 ```
 
-**Frontend** — reads `frontend/.env` (`DEV_SERVER_PORT`, `API_PROXY_TARGET`, `VITE_API_BASE_URL`); default dev URL **http://localhost:5173**, proxies `/api` → backend:
+**Frontend** (port 5173 — proxy `/api` ไป backend ตาม `API_PROXY_TARGET` ใน `frontend/.env`):
 
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend
+cp .env.example .env   # ครั้งแรก — .env ถูก gitignore
+npm install && npm run dev
 ```
 
-Run **both** — the app loads questions via `GET /api/questions`, submits with `POST /api/submit`, and the Leaderboard page fetches `GET /api/leaderboard` (the backend must be running).
+รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` ส่งคำตอบด้วย `POST /api/submit` และหน้า Leaderboard ดึง `GET /api/leaderboard` (ต้องรัน backend ให้พร้อม)
 
-### Mock data for testing the Leaderboard
+### ข้อมูล mock สำหรับทดสอบ Leaderboard
 
-The SQLite database lives at `backend/data/exam.db` (created when the API runs — listed in `.gitignore`).
+ฐานข้อมูล SQLite อยู่ที่ `backend/data/exam.db` (สร้างตอนรัน API — อยู่ใน `.gitignore`)
 
-**Stop the backend first** (to avoid DB file locking). Run the following **from the repository root** so paths match.
+**หยุด backend ก่อน** (กันติดล็อกไฟล์ DB) แล้วใช้สคริปต์ใดสคริปต์หนึ่งจาก root ของ repo:
 
-**Insert sample rows** into `exam_results` — [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql)
+| การทำ | ไฟล์ | คำสั่ง |
+|--------|------|--------|
+| แทรกแถวตัวอย่างใน `exam_results` | [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql` |
+| **ลบผลการสอบทั้งหมด** (ล้าง Leaderboard / รีเซ็ตก่อนลองใหม่) | [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql` |
 
-```bash
-sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql
-```
+รัน mock ซ้ำจะ INSERT เพิ่มเรื่อยๆ — ถ้าอยากเริ่มว่างก่อนแทรก mock ให้รัน **clear** ก่อน
 
-**Delete all exam results** (clear leaderboard / reset before retrying) — [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql)
+## เอกสาร (อ่านต่อ)
 
-```bash
-sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql
-```
-
-Running mock repeatedly will keep INSERTing rows — to start fresh before inserting mock data, run **clear** first.
-
-**Why `backend/scripts/` and not `cmd/`?** In Go projects, [`cmd/`](./backend/cmd/) is for **executable entrypoints** (`package main`, e.g. `cmd/api`). SQL used for local dev / DB maintenance is not a binary — keeping it in `backend/scripts/` matches common layout and stays separate from application composition (handler → use case → repository).
-
-## Documentation (read more)
-
-| Topic | Link |
+| หัวข้อ | ลิงก์ |
 |--------|------|
-| Full documentation index | [docs/README.md](./docs/README.md) |
-| API (endpoints + JSON) | [docs/api.md](./docs/api.md) |
-| Architecture & stack | [docs/architech.md](./docs/architech.md) |
-| Flow + diagrams | [docs/architech.md](./docs/architech.md) |
-| Code walkthrough (by line) | [docs/code_analyze.md](./docs/code_analyze.md) |
-| Future plans & roadmap | [docs/planning.md](./docs/planning.md) |
+| ดัชนีเอกสารทั้งหมด | [docs/README.md](./docs/README.md) |
+| API (endpoint + JSON) | [docs/api.md](./docs/api.md) |
+| สถาปัตยกรรม & stack | [docs/architech.md](./docs/architech.md) |
+| Flow + diagram | [docs/architech.md](./docs/architech.md) |
+| อ่านโค้ดทีละไฟล์ (บรรทัด) | [docs/code_analyze.md](./docs/code_analyze.md) |
+| แผนอนาคต & roadmap | [docs/planning.md](./docs/planning.md) |
 | Testing | [docs/testing.md](./docs/testing.md) |
-| Progress / phases | [execute.md](./execute.md) |
-| Doc–code sync rules | [RULE.md](./RULE.md) |
+| Progress / Phase | [execute.md](./execute.md) |
+| กฎซิงค์เอกสารกับโค้ด | [RULE.md](./RULE.md) |
 
-## Repository layout
+## โครงสร้าง repo
 
-| Folder | Description |
+| โฟลเดอร์ | คำอธิบาย |
 |----------|----------|
 | [`frontend/`](./frontend/) | Vue 3 + Vite + Pinia + Tailwind |
-| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) · Test SQL scripts: [`mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql), [`clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) |
-| [`docs/`](./docs/) | Design docs and API reference |
+| [`backend/`](./backend/) | Go + Gin + GORM (`cmd/api`, `internal/`) · SQL ช่วยทดสอบ: [`mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql), [`clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) |
+| [`docs/`](./docs/) | เอกสารออกแบบและ API reference |
