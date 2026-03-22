@@ -38,14 +38,23 @@ Run **both** — the app loads questions via `GET /api/questions`, submits with 
 
 The SQLite database lives at `backend/data/exam.db` (created when the API runs — listed in `.gitignore`).
 
-**Stop the backend first** (to avoid DB file locking) then use one of the scripts from the repo root:
+**Stop the backend first** (to avoid DB file locking). Run the following **from the repository root** so paths match.
 
-| Action | File | Command |
-|--------|------|---------|
-| Insert sample rows into `exam_results` | [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql` |
-| **Delete all exam results** (clear leaderboard / reset before retrying) | [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql) | `sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql` |
+**Insert sample rows** into `exam_results` — [`backend/scripts/mock_exam_results.sql`](./backend/scripts/mock_exam_results.sql)
+
+```bash
+sqlite3 backend/data/exam.db < backend/scripts/mock_exam_results.sql
+```
+
+**Delete all exam results** (clear leaderboard / reset before retrying) — [`backend/scripts/clear_exam_results.sql`](./backend/scripts/clear_exam_results.sql)
+
+```bash
+sqlite3 backend/data/exam.db < backend/scripts/clear_exam_results.sql
+```
 
 Running mock repeatedly will keep INSERTing rows — to start fresh before inserting mock data, run **clear** first.
+
+**Why `backend/scripts/` and not `cmd/`?** In Go projects, [`cmd/`](./backend/cmd/) is for **executable entrypoints** (`package main`, e.g. `cmd/api`). SQL used for local dev / DB maintenance is not a binary — keeping it in `backend/scripts/` matches common layout and stays separate from application composition (handler → use case → repository).
 
 ## Documentation (read more)
 
