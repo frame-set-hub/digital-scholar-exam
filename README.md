@@ -41,6 +41,8 @@ cd frontend && npm install && npm run dev
 
 Run **both** — the app loads questions via `GET /api/questions`, submits with `POST /api/submit`, and the Leaderboard page fetches `GET /api/leaderboard` (the backend must be running).
 
+**ExamView:** If you click **Submit** before answering every question, the app shows a warning under the button, adds a red border to each unanswered card (including the prompt text), and smooth-scrolls to the first unanswered question.
+
 ### Mock data for testing the Leaderboard
 
 The SQLite database lives at `backend/data/exam.db` (created when the API runs — listed in `.gitignore`).

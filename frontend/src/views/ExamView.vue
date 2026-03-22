@@ -1,12 +1,29 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
 const exam = useExamStore()
 const { candidateName, questions, answers, loadState, loadError } = storeToRefs(exam)
 
-const formError = ref('')
+const nameError = ref('')
+const submitError = ref('')
+/** After submit while incomplete — unanswered questions get a red border (scroll to first gap). */
+const showUnansweredHighlight = ref(false)
+/** DOM refs per question section (for scrollIntoView). */
+const sectionRefs = {}
+
+function setSectionRef(questionId, el) {
+  if (el) {
+    sectionRefs[questionId] = el
+  } else {
+    delete sectionRefs[questionId]
+  }
+}
+
+const nameBlockRef = ref(null)
+const submitSectionRef = ref(null)
+const submitBtnRef = ref(null)
 
 onMounted(() => {
   exam.loadQuestions()
@@ -25,24 +42,74 @@ function selectOption(questionId, optionId) {
   exam.setAnswer(questionId, optionId)
 }
 
+function isQuestionUnanswered(questionId) {
+  return answers.value[questionId] == null
+}
+
+function questionSectionClasses(questionId) {
+  const invalid = showUnansweredHighlight.value && isQuestionUnanswered(questionId)
+  return [
+    'rounded-3xl border p-8 shadow-[0_8px_32px_rgba(25,28,30,0.04)] md:p-12',
+    invalid
+      ? 'border-red-500 bg-red-50/80 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]'
+      : 'border-outline-variant/10 bg-surface-container-lowest',
+  ]
+}
+
+function scrollToName() {
+  nameBlockRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function scrollToSubmit() {
+  submitSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function focusSubmitButton() {
+  submitBtnRef.value?.focus()
+}
+
 async function handleSubmit() {
-  formError.value = ''
+  nameError.value = ''
+  submitError.value = ''
+  showUnansweredHighlight.value = false
   const name = candidateName.value.trim()
   if (!name) {
-    formError.value = 'กรุณากรอกชื่อผู้สอบ'
+    nameError.value = 'กรุณากรอกชื่อผู้สอบ'
+    await nextTick()
+    scrollToName()
     return
   }
   if (!allAnswered.value) {
-    formError.value = 'กรุณาตอบให้ครบทุกข้อ'
+    submitError.value = 'กรุณาตอบให้ครบทุกข้อ'
+    showUnansweredHighlight.value = true
+    const firstUnanswered = questions.value.find((q) => answers.value[q.id] == null)
+    if (firstUnanswered) {
+      await nextTick()
+      const el = sectionRefs[firstUnanswered.id]
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
     return
   }
   try {
     await exam.submitExam()
   } catch (e) {
-    formError.value =
+    const status = e?.status
+    const msg = e?.message || 'ส่งข้อสอบไม่สำเร็จ'
+    const isNameConflict = status === 409
+    const isNameRequiredFromAPI =
+      status === 400 && typeof msg === 'string' && msg.includes('กรุณากรอกชื่อ')
+    if (isNameConflict || isNameRequiredFromAPI) {
+      nameError.value = msg
+      await nextTick()
+      scrollToName()
+      return
+    }
+    submitError.value =
       e?.message?.includes('fetch') || e?.name === 'TypeError'
         ? 'ส่งข้อสอบไม่สำเร็จ — ตรวจสอบว่า backend รันที่ :8080 และลองใหม่'
-        : e?.message || 'ส่งข้อสอบไม่สำเร็จ'
+        : msg
+    await nextTick()
+    scrollToSubmit()
   }
 }
 
@@ -89,7 +156,7 @@ function optionTextClasses(questionId, optionId) {
         {{ loadError }}
       </p>
       <!-- Header + Candidate Name -->
-      <div class="mb-12">
+      <div ref="nameBlockRef" class="mb-12 scroll-mt-8">
         <div class="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div class="space-y-2">
             <span
@@ -116,12 +183,33 @@ function optionTextClasses(questionId, optionId) {
                 type="text"
                 autocomplete="name"
                 placeholder="Enter your full name"
-                class="w-full rounded-t-lg border-none border-b-2 border-transparent bg-surface-container-highest py-3 pl-4 pr-4 font-sans text-on-surface transition-all duration-300 placeholder:text-outline/50 focus:border-primary focus:ring-0"
+                :aria-invalid="nameError ? 'true' : 'false'"
+                :aria-describedby="nameError ? 'candidate-name-error' : undefined"
+                class="w-full rounded-t-lg border-none border-b-2 bg-surface-container-highest py-3 pl-4 pr-4 font-sans text-on-surface transition-all duration-300 placeholder:text-outline/50 focus:ring-0"
+                :class="
+                  nameError
+                    ? 'border-red-500 focus:border-red-600'
+                    : 'border-transparent focus:border-primary'
+                "
+                @keydown.enter.prevent="focusSubmitButton"
               />
               <div
-                class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-outline-variant/15 transition-colors group-focus-within:bg-primary"
+                class="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 transition-colors"
+                :class="
+                  nameError
+                    ? 'bg-red-500'
+                    : 'bg-outline-variant/15 group-focus-within:bg-primary'
+                "
               />
             </div>
+            <p
+              v-if="nameError"
+              id="candidate-name-error"
+              class="mt-2 text-sm font-medium text-red-600"
+              role="alert"
+            >
+              {{ nameError }}
+            </p>
           </div>
         </div>
       </div>
@@ -141,8 +229,10 @@ function optionTextClasses(questionId, optionId) {
       <div v-else class="space-y-12">
         <section
           v-for="(q, index) in questions"
+          :id="'question-' + q.id"
           :key="q.id"
-          class="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-[0_8px_32px_rgba(25,28,30,0.04)] md:p-12"
+          :ref="(el) => setSectionRef(q.id, el)"
+          :class="questionSectionClasses(q.id)"
         >
           <div class="mb-8 flex items-start gap-4">
             <span
@@ -169,15 +259,36 @@ function optionTextClasses(questionId, optionId) {
               <span :class="optionTextClasses(q.id, opt.id)">{{ opt.text }}</span>
             </button>
           </div>
+          <div
+            v-if="showUnansweredHighlight && answers[q.id] == null"
+            class="mt-6 flex items-center gap-2 font-sans text-sm font-bold text-red-600"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
+            โปรดเลือกคำตอบก่อนดำเนินการต่อ
+          </div>
         </section>
       </div>
 
       <!-- Submit -->
-      <div v-if="loadState !== 'loading'" class="mt-16 flex flex-col items-center gap-6">
-        <p v-if="formError" class="text-center text-sm font-medium text-red-600" role="alert">
-          {{ formError }}
+      <div
+        v-if="loadState !== 'loading'"
+        ref="submitSectionRef"
+        class="mt-16 flex scroll-mt-8 flex-col items-center gap-6"
+      >
+        <p
+          v-if="submitError"
+          :class="
+            showUnansweredHighlight
+              ? 'animate-pulse text-center text-sm font-bold text-red-600'
+              : 'text-center text-sm font-medium text-red-600'
+          "
+          role="alert"
+        >
+          {{ submitError }}
         </p>
         <button
+          ref="submitBtnRef"
           type="button"
           :disabled="questions.length === 0"
           class="group relative w-full max-w-md overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-4 text-xl font-bold text-on-primary shadow-xl shadow-indigo-500/20 transition-all enabled:active:scale-[0.98] enabled:hover:shadow-indigo-500/35 disabled:cursor-not-allowed disabled:opacity-50"

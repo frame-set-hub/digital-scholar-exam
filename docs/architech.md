@@ -12,6 +12,7 @@
   - [Diagram — Frontend relationships](#diagram--frontend-relationships)
   - [Diagram — Backend request sequence](#diagram--backend-request-sequence)
   - [Frontend tech stack](#frontend-tech-stack)
+  - [Trade-off: Node.js + npm vs Bun (frontend tooling)](#trade-off-nodejs--npm-vs-bun-frontend-tooling)
   - [Backend tech stack](#backend-tech-stack)
   - [Why Vue 3 + Pinia](#why-vue-3--pinia)
   - [Why Go + Gin + SQLite](#why-go--gin--sqlite)
@@ -35,7 +36,7 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 3. **Success:** questions stored in Pinia  
    **Failure:** clear `questions`, set `loadError`, show a message — no offline question set
 4. User enters name and selects answers → `setAnswer` updates `answers`
-5. Submit → validate name and all questions answered → **`POST /api/submit`** with `{ candidateName, answers }` → receive `score` from server → navigate to `/result`
+5. Submit → validate name and completion · **If any question is unanswered:** show a message under the button, highlight every unanswered card with a red border, and smooth-scroll to the first unanswered (no API call) · **If complete:** **`POST /api/submit`** with `{ candidateName, answers }` → server rejects duplicate names after trim (`409`) and empty-name cases (`400`) — UI shows the message on the name field and scrolls to it · **Success:** receive `score` from server → navigate to `/result`
 6. `ResultView` shows name and score → **View Leaderboard** → `/leaderboard` → `LeaderboardView` calls **`GET /api/leaderboard`** (`loadLeaderboard`) or **Retake** → `resetExam()`
 7. `LeaderboardView` button **Back to Exam** → `resetExam()` (clears name/answers/score/leaderboard, returns to `/` — does not clear questions to avoid redundant `GET /api/questions`)
 
@@ -47,7 +48,7 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 |------|----------------|------------------|
 | HTTP | `handler.ExamHTTP` | Accept request, bind JSON, HTTP status |
 | Business rules | `usecase.Exam` | `GetQuestions`: load from store → map to DTO **without answers** |
-| | | `SubmitExam`: load questions with answers from DB → `ScoreAnswers` → build `ExamResult` (including answer JSON) → `SaveExamResult` |
+| | | `SubmitExam`: trim ชื่อ → `CandidateNameExists` (ซ้ำแล้ว error) → load questions → `ScoreAnswers` → build `ExamResult` → `SaveExamResult` |
 | | | `GetLeaderboard`: load `ExamResult` from store → map to `LeaderboardEntryDTO` (does not include `answers`) |
 | Data | `repository.QuestionGorm` / `ExamResultGorm` | GORM read/write SQLite — `GetLeaderboard` sorts by `score DESC`, `created_at ASC` |
 
@@ -62,8 +63,8 @@ The frontend separates UI (Vue), routing (Vue Router), and transient state (Pini
 **Submit (POST)**
 
 - **Frontend** sends `candidateName` and `answers` (keys are string question ids)
-- **Use case** loads questions + answers from DB as before → compares to `answers` → `score`, `total`
-- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`)
+- **Use case** ตรวจชื่อไม่ซ้ำ → loads questions + answers from DB → compares to `answers` → `score`, `total`
+- **DB:** `INSERT` into `exam_results` (name, score, total, `answers_json`) — ชื่อเก็บหลัง trim; การห้ามซ้ำเป็นแอปพลิเคชัน (เทียบ `candidate_name` ตรง)
 
 **Leaderboard (GET)**
 
@@ -162,6 +163,23 @@ sequenceDiagram
 | **Tailwind CSS** | Utility-first styling, responsive, mobile-first |
 | **Vue Router** | Routes: `/` (exam), `/result` (score), `/leaderboard` (rankings) |
 | **Pinia** | State: candidate name, questions, answers, score, leaderboard — loads questions and rankings from API only |
+| **Node.js + npm** | Dev and build toolchain for Vite (see trade-off below) |
+
+## Trade-off: Node.js + npm vs Bun (frontend tooling)
+
+For **Vue 3 + Vite** in this repo, we standardize on **Node.js with npm** as the **safe default** for development and CI-style builds.
+
+**Bun** has gained strong traction as an **all-in-one** toolkit: very fast package installs (often an order of magnitude quicker than npm in typical projects), a single binary for runtime + package manager, and **native TypeScript** execution without a separate compile step for many workflows. Those advantages matter for teams that commit to Bun end-to-end.
+
+**Why Node + npm here anyway**
+
+- **De facto ecosystem alignment** — Vite, Vue 3 docs, and most community plugins assume **Node** first. Staying on Node minimizes integration surprises (“works on Bun only”) for a learning / assessment codebase.
+- **Stability over novelty** — A newer runtime can still hit **edge cases** (native dependencies, scripts that shell out to `node`, subtle semver behavior). Node is the conservative choice for **predictable** contributor and reviewer experience.
+- **Standard commands, no extra install** — Graders and new contributors can follow **`npm install`** / **`npm run dev`** with only Node LTS, as documented in the root [README.md](../README.md) and [frontend/README.md](../frontend/README.md).
+
+Node remains the **majority default** in many orgs, tutorials, and base images; that overlap lowers onboarding friction even though Bun is a legitimate option elsewhere.
+
+**Summary:** Bun trades a bit of **maximum speed and consolidation** for **broader assumed compatibility** when you pick Node + npm — for this project we prioritize the latter. Teams comfortable owning compatibility checks may still adopt Bun locally; the app does not depend on Bun-specific APIs.
 
 ## Backend tech stack
 

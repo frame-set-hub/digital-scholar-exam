@@ -1,14 +1,32 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
+const route = useRoute()
 const exam = useExamStore()
-const { leaderboard, leaderboardState, leaderboardError } = storeToRefs(exam)
+const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry } = storeToRefs(exam)
+
+/** อ่าน `?forCandidate=` จาก route โดยตรง — ตรงกับที่ curl / แชร์ลิงก์ใช้ ไม่ผ่าน router ใน store */
+function candidateFromRoute() {
+  const raw = route.query.forCandidate
+  const q = Array.isArray(raw) ? raw[0] : raw
+  return typeof q === 'string' ? q.trim() : ''
+}
 
 onMounted(() => {
-  exam.loadLeaderboard()
+  const q = candidateFromRoute()
+  exam.loadLeaderboard(q || undefined)
 })
+
+watch(
+  () => route.query.forCandidate,
+  () => {
+    const q = candidateFromRoute()
+    exam.loadLeaderboard(q || undefined)
+  }
+)
 
 const firstPlace = computed(() => leaderboard.value[0])
 const secondPlace = computed(() => leaderboard.value[1])
@@ -78,6 +96,41 @@ function backToExam() {
         {{ leaderboardError }}
       </div>
       <template v-else>
+        <!-- Me: ตำแหน่งของคุณ — ด้านบน podium (ต้องโหลดด้วยชื่อใน store → API ส่ง ?forCandidate=...) -->
+        <div
+          v-if="leaderboardYourEntry"
+          class="mx-auto mb-8 max-w-3xl overflow-hidden rounded-2xl border-2 border-primary/35 bg-gradient-to-br from-primary/5 to-surface-container-low px-4 py-4 shadow-md sm:px-6 sm:py-5"
+          role="region"
+          aria-label="Your position"
+        >
+          <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+          >
+            <div class="flex items-center justify-center gap-2 sm:justify-start">
+              <span
+                class="inline-flex shrink-0 items-center rounded-full bg-primary px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-on-primary"
+                >Me</span
+              >
+              <span class="material-symbols-outlined text-2xl text-primary" aria-hidden="true">person</span>
+            </div>
+            <div class="min-w-0 flex-1 text-center sm:text-right">
+              <p class="truncate font-display text-lg font-bold text-on-surface">
+                {{ leaderboardYourEntry.candidateName }}
+              </p>
+              <p class="mt-1 text-base font-semibold text-on-surface">
+                Rank <span class="font-black text-primary">#{{ leaderboardYourEntry.rank }}</span>
+                · {{ formatScore(leaderboardYourEntry) }} points
+              </p>
+            </div>
+          </div>
+          <p v-if="leaderboardYourEntry.inTopList" class="mt-3 text-center text-sm text-secondary sm:text-left">
+            You’re in the top 20 — find your row in the list below.
+          </p>
+          <p v-else class="mt-3 text-center text-sm font-medium text-amber-900 sm:text-left">
+            Not in the top 20 below — this is your global rank (e.g. 0 points places after everyone with a higher score).
+          </p>
+        </div>
+
         <div v-if="leaderboard.length === 0" class="py-16 text-center font-medium text-secondary">
           No exam results yet.
         </div>

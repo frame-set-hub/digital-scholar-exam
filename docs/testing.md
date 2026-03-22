@@ -33,6 +33,8 @@
 | Incomplete answers | 2 questions, submit 1 — scoring works, no error; unanswered rows get no points (`ScoreAnswers` / `SubmitExam` partial) |
 | Invalid / non-existent option ID | No panic / no error; that question scores zero (`ScoreAnswers` + `SubmitExam` zero) |
 | Answer keys for unknown questions | Odd keys ignored when scoring (`WrongKeysIgnoredForUnknownQuestion`) |
+| Empty name after trim | `SubmitExam("   ", …)` → `ErrCandidateNameRequired` |
+| Duplicate name | `CandidateNameExists` true → `ErrDuplicateCandidateName`; `SaveExamResult` not called |
 
 **Example run:**
 

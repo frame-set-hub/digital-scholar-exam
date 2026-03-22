@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 
 	"digital-scholar-exam/backend/internal/models"
@@ -51,6 +52,16 @@ type LeaderboardEntryDTO struct {
 	CreatedAt     string `json:"createdAt"`
 }
 
+// LeaderboardYourEntryDTO ตำแหน่งผู้สอบเมื่อส่ง query forCandidate — inTopList=true เมื่ออยู่ในช่วง limit แถวแรก
+type LeaderboardYourEntryDTO struct {
+	Rank          int    `json:"rank"`
+	CandidateName string `json:"candidateName"`
+	Score         int    `json:"score"`
+	Total         int    `json:"total"`
+	CreatedAt     string `json:"createdAt"`
+	InTopList     bool   `json:"inTopList"`
+}
+
 // GetQuestions ดึงข้อสอบสำหรับหน้า IT 10-1 (ไม่รวม correctOptionId)
 func (e *Exam) GetQuestions(ctx context.Context) ([]QuestionDTO, error) {
 	qs, err := e.questions.GetQuestions(ctx)
@@ -75,6 +86,11 @@ func (e *Exam) GetQuestions(ctx context.Context) ([]QuestionDTO, error) {
 
 // SubmitExam ดึงเฉลยจาก DB ตรวจคำตอบ บวกคะแนนต่อข้อที่ถูก แล้วให้ repository บันทึกชื่อกับคะแนนรวม
 func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map[string]string) (*SubmitResponse, error) {
+	name := strings.TrimSpace(candidateName)
+	if name == "" {
+		return nil, ErrCandidateNameRequired
+	}
+
 	qs, err := e.questions.GetQuestions(ctx)
 	if err != nil {
 		return nil, err
@@ -87,8 +103,16 @@ func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map
 		return nil, err
 	}
 
+	exists, err := e.results.CandidateNameExists(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrDuplicateCandidateName
+	}
+
 	res := &models.ExamResult{
-		CandidateName: candidateName,
+		CandidateName: name,
 		Score:           score,
 		Total:           total,
 		AnswersJSON:     string(payload),
@@ -98,18 +122,18 @@ func (e *Exam) SubmitExam(ctx context.Context, candidateName string, answers map
 	}
 
 	return &SubmitResponse{
-		CandidateName: candidateName,
+		CandidateName: name,
 		Score:         score,
 		Total:         total,
 	}, nil
 }
 
-// GetLeaderboard ดึงอันดับจาก repository แล้วส่งเฉพาะฟิลด์ที่จำเป็น
-func (e *Exam) GetLeaderboard(ctx context.Context, limit int) ([]LeaderboardEntryDTO, error) {
+// GetLeaderboard ดึงอันดับจาก repository แล้วส่งเฉพาะฟิลด์ที่จำเป็น — forCandidate ไม่ว่างจะคำนวณ yourEntry (อันดับรวม)
+func (e *Exam) GetLeaderboard(ctx context.Context, limit int, forCandidate string) ([]LeaderboardEntryDTO, *LeaderboardYourEntryDTO, error) {
 	limit = normalizeLeaderboardLimit(limit)
 	rows, err := e.results.GetLeaderboard(ctx, limit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	out := make([]LeaderboardEntryDTO, 0, len(rows))
 	for i, row := range rows {
@@ -121,7 +145,27 @@ func (e *Exam) GetLeaderboard(ctx context.Context, limit int) ([]LeaderboardEntr
 			CreatedAt:     row.CreatedAt.UTC().Format(time.RFC3339),
 		})
 	}
-	return out, nil
+
+	name := strings.TrimSpace(forCandidate)
+	if name == "" {
+		return out, nil, nil
+	}
+	rank, row, found, err := e.results.CandidateRank(ctx, name)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !found {
+		return out, nil, nil
+	}
+	your := &LeaderboardYourEntryDTO{
+		Rank:          rank,
+		CandidateName: row.CandidateName,
+		Score:         row.Score,
+		Total:         row.Total,
+		CreatedAt:     row.CreatedAt.UTC().Format(time.RFC3339),
+		InTopList:     rank <= limit,
+	}
+	return out, your, nil
 }
 
 func normalizeLeaderboardLimit(limit int) int {

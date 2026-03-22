@@ -29,7 +29,12 @@ function retake() {
 }
 
 function goLeaderboard() {
-  router.push({ name: 'leaderboard' })
+  const n = (candidateName.value && String(candidateName.value).trim()) || ''
+  router.push(
+    n
+      ? { name: 'leaderboard', query: { forCandidate: n } }
+      : { name: 'leaderboard' },
+  )
 }
 </script>
 

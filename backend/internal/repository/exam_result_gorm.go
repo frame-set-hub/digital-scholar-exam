@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"digital-scholar-exam/backend/internal/models"
 
@@ -16,6 +17,19 @@ type ExamResultGorm struct {
 // NewExamResultGorm ...
 func NewExamResultGorm(db *gorm.DB) *ExamResultGorm {
 	return &ExamResultGorm{db: db}
+}
+
+// CandidateNameExists ตรวจว่ามีผลสอบด้วยชื่อนี้แล้วหรือไม่ (เทียบตรงหลัง trim ฝั่ง use case)
+func (r *ExamResultGorm) CandidateNameExists(ctx context.Context, candidateName string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.ExamResult{}).
+		Where("candidate_name = ?", candidateName).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // SaveExamResult บันทึกผลสอบลง SQLite
@@ -39,4 +53,28 @@ func (r *ExamResultGorm) GetLeaderboard(ctx context.Context, limit int) ([]model
 		Limit(limit).
 		Find(&rows).Error
 	return rows, err
+}
+
+// CandidateRank อันดับรวมเทียบกับทุกแถวใน exam_results — เรียงเหมือน GetLeaderboard
+func (r *ExamResultGorm) CandidateRank(ctx context.Context, candidateName string) (int, models.ExamResult, bool, error) {
+	var row models.ExamResult
+	err := r.db.WithContext(ctx).
+		Model(&models.ExamResult{}).
+		Where("candidate_name = ?", candidateName).
+		First(&row).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, models.ExamResult{}, false, nil
+		}
+		return 0, models.ExamResult{}, false, err
+	}
+	var before int64
+	err = r.db.WithContext(ctx).
+		Model(&models.ExamResult{}).
+		Where("(score > ?) OR (score = ? AND created_at < ?)", row.Score, row.Score, row.CreatedAt).
+		Count(&before).Error
+	if err != nil {
+		return 0, models.ExamResult{}, false, err
+	}
+	return int(before) + 1, row, true, nil
 }

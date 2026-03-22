@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockQuestionStore จำลอง Repository ข้อสอบ (testify/mock)
@@ -28,6 +30,11 @@ type MockExamResultStore struct {
 	mock.Mock
 }
 
+func (m *MockExamResultStore) CandidateNameExists(ctx context.Context, name string) (bool, error) {
+	args := m.Called(ctx, name)
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *MockExamResultStore) SaveExamResult(ctx context.Context, r *models.ExamResult) error {
 	args := m.Called(ctx, r)
 	return args.Error(0)
@@ -37,6 +44,13 @@ func (m *MockExamResultStore) GetLeaderboard(ctx context.Context, limit int) ([]
 	args := m.Called(ctx, limit)
 	v, _ := args.Get(0).([]models.ExamResult)
 	return v, args.Error(1)
+}
+
+func (m *MockExamResultStore) CandidateRank(ctx context.Context, candidateName string) (int, models.ExamResult, bool, error) {
+	args := m.Called(ctx, candidateName)
+	rank := args.Int(0)
+	row, _ := args.Get(1).(models.ExamResult)
+	return rank, row, args.Bool(2), args.Error(3)
 }
 
 func sampleQuestions() []models.Question {
@@ -76,6 +90,7 @@ func TestExam_SubmitExam_FullScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Alice").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Alice" && r.Score == 3 && r.Total == 3
 	})).Return(nil)
@@ -97,6 +112,7 @@ func TestExam_SubmitExam_ZeroScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Bob").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Bob" && r.Score == 0 && r.Total == 3
 	})).Return(nil)
@@ -134,6 +150,7 @@ func TestExam_SubmitExam_MissingAnswers_PartialScore(t *testing.T) {
 	mr := new(MockExamResultStore)
 	two := sampleQuestions()[:2]
 	mq.On("GetQuestions", mock.Anything).Return(two, nil)
+	mr.On("CandidateNameExists", mock.Anything, "Partial").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "Partial" && r.Score == 1 && r.Total == 2
 	})).Return(nil)
@@ -148,10 +165,35 @@ func TestExam_SubmitExam_MissingAnswers_PartialScore(t *testing.T) {
 	mr.AssertExpectations(t)
 }
 
+func TestExam_SubmitExam_EmptyNameAfterTrim(t *testing.T) {
+	ex := usecase.NewExam(new(MockQuestionStore), new(MockExamResultStore))
+	res, err := ex.SubmitExam(context.Background(), "   ", map[string]string{"1": "1c"})
+	assert.ErrorIs(t, err, usecase.ErrCandidateNameRequired)
+	assert.Nil(t, res)
+}
+
+func TestExam_SubmitExam_DuplicateName(t *testing.T) {
+	mq := new(MockQuestionStore)
+	mr := new(MockExamResultStore)
+	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "Alice").Return(true, nil)
+
+	ex := usecase.NewExam(mq, mr)
+	res, err := ex.SubmitExam(context.Background(), "Alice", map[string]string{
+		"1": "1c", "2": "2b", "3": "3b",
+	})
+	assert.ErrorIs(t, err, usecase.ErrDuplicateCandidateName)
+	assert.Nil(t, res)
+	mr.AssertNotCalled(t, "SaveExamResult", mock.Anything, mock.Anything)
+	mq.AssertExpectations(t)
+	mr.AssertExpectations(t)
+}
+
 func TestExam_SubmitExam_InvalidOptionIDs_NoErrorZeroScore(t *testing.T) {
 	mq := new(MockQuestionStore)
 	mr := new(MockExamResultStore)
 	mq.On("GetQuestions", mock.Anything).Return(sampleQuestions(), nil)
+	mr.On("CandidateNameExists", mock.Anything, "BadIds").Return(false, nil)
 	mr.On("SaveExamResult", mock.Anything, mock.MatchedBy(func(r *models.ExamResult) bool {
 		return r.CandidateName == "BadIds" && r.Score == 0 && r.Total == 3
 	})).Return(nil)
@@ -178,13 +220,112 @@ func TestExam_GetLeaderboard(t *testing.T) {
 	}, nil)
 
 	ex := usecase.NewExam(new(MockQuestionStore), mr)
-	entries, err := ex.GetLeaderboard(context.Background(), 0)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "")
 	assert.NoError(t, err)
+	assert.Nil(t, your)
 	assert.Len(t, entries, 2)
 	assert.Equal(t, 1, entries[0].Rank)
 	assert.Equal(t, "Sophia", entries[0].CandidateName)
 	assert.Equal(t, 5, entries[0].Score)
 	assert.Equal(t, t0.UTC().Format(time.RFC3339), entries[0].CreatedAt)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_NotInTopList(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	// top 20 ซ้ำชื่อเพื่อเติม 20 แถว — ผู้ทดสอบอยู่อันดับ 21
+	top := make([]models.ExamResult, 20)
+	for i := 0; i < 20; i++ {
+		top[i] = models.ExamResult{CandidateName: "Other", Score: 3, Total: 3, CreatedAt: t0.Add(-time.Duration(i) * time.Minute)}
+	}
+	mr.On("GetLeaderboard", mock.Anything, 20).Return(top, nil)
+	mr.On("CandidateRank", mock.Anything, "LowRank").Return(21, models.ExamResult{
+		CandidateName: "LowRank",
+		Score:         0,
+		Total:         3,
+		CreatedAt:     t0,
+	}, true, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "LowRank")
+	assert.NoError(t, err)
+	assert.Len(t, entries, 20)
+	require.NotNil(t, your)
+	assert.Equal(t, 21, your.Rank)
+	assert.Equal(t, "LowRank", your.CandidateName)
+	assert.False(t, your.InTopList)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_InTopList(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Me", Score: 3, Total: 3, CreatedAt: t0},
+	}, nil)
+	mr.On("CandidateRank", mock.Anything, "Me").Return(1, models.ExamResult{
+		CandidateName: "Me",
+		Score:         3,
+		Total:         3,
+		CreatedAt:     t0,
+	}, true, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	_, your, err := ex.GetLeaderboard(context.Background(), 0, "Me")
+	assert.NoError(t, err)
+	require.NotNil(t, your)
+	assert.True(t, your.InTopList)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_NotFound(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Other", Score: 3, Total: 3, CreatedAt: t0},
+	}, nil)
+	mr.On("CandidateRank", mock.Anything, "Nobody").Return(0, models.ExamResult{}, false, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "Nobody")
+	assert.NoError(t, err)
+	assert.Nil(t, your)
+	assert.Len(t, entries, 1)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_ForCandidate_WhitespaceOnly(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "Me", Score: 3, Total: 3, CreatedAt: t0},
+	}, nil)
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	entries, your, err := ex.GetLeaderboard(context.Background(), 0, "   \t")
+	assert.NoError(t, err)
+	assert.Nil(t, your)
+	assert.Len(t, entries, 1)
+
+	mr.AssertExpectations(t)
+}
+
+func TestExam_GetLeaderboard_CandidateRank_error(t *testing.T) {
+	mr := new(MockExamResultStore)
+	t0 := time.Date(2026, 3, 24, 14, 30, 0, 0, time.UTC)
+	mr.On("GetLeaderboard", mock.Anything, 20).Return([]models.ExamResult{
+		{CandidateName: "X", Score: 1, Total: 7, CreatedAt: t0},
+	}, nil)
+	mr.On("CandidateRank", mock.Anything, "Me").Return(0, models.ExamResult{}, false, errors.New("db error"))
+
+	ex := usecase.NewExam(new(MockQuestionStore), mr)
+	_, _, err := ex.GetLeaderboard(context.Background(), 0, "Me")
+	require.Error(t, err)
 
 	mr.AssertExpectations(t)
 }
