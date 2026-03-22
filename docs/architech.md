@@ -204,6 +204,7 @@ backend/
 │   ├── repository/          # GORM: GetQuestions, SaveExamResult, GetLeaderboard, migrate, seed
 │   ├── usecase/             # Exam, ports (interfaces), ScoreAnswers, GetLeaderboard
 │   └── handler/             # Gin: GET /api/questions, POST /api/submit, GET /api/leaderboard
+├── scripts/                 # optional dev SQL (mock/clear exam_results) — not under cmd/ (cmd = mains only)
 ├── go.mod
 └── data/exam.db             # created at run time (in .gitignore)
 ```

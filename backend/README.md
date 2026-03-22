@@ -15,7 +15,7 @@ go test ./... -count=1 -v
 
 ## Layout
 
-`cmd/api/main.go` · `internal/{handler,usecase,repository,models}` · `data/exam.db` (created automatically)
+`cmd/api/main.go` · `internal/{handler,usecase,repository,models}` · `scripts/` (optional dev SQL — run commands in [root README](../README.md#mock-data-for-testing-the-leaderboard)) · `data/exam.db` (created automatically)
 
 ---
 
