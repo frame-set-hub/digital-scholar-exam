@@ -12,6 +12,7 @@ import (
 	"digital-scholar-exam/backend/internal/usecase"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -21,6 +22,8 @@ func main() {
 }
 
 func run() error {
+	_ = godotenv.Load()
+
 	dataDir, err := resolveDataDir()
 	if err != nil {
 		return err

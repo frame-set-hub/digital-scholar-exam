@@ -8,8 +8,8 @@ SPA for taking exams — architecture and flows are in **[`../docs/`](../docs/)*
 
 ## Environment
 
-1. Copy [`.env.example`](./.env.example) to **`.env`** at the `frontend/` folder root
-2. Adjust `VITE_API_BASE_URL` (empty = use `/api` + proxy) and `API_PROXY_TARGET` (where the dev proxy forwards)
+1. Copy [`.env.example`](./.env.example) to **`.env`** at the `frontend/` folder root (or from repo root: `cp frontend/.env.example frontend/.env`)
+2. Adjust `DEV_SERVER_PORT` (Vite dev server), `VITE_API_BASE_URL` (empty = use `/api` + proxy), and `API_PROXY_TARGET` (where the dev proxy forwards — match the backend `PORT`)
 
 **`.env` is gitignored** — not committed; only `.env.example` is the template
 
@@ -17,7 +17,7 @@ SPA for taking exams — architecture and flows are in **[`../docs/`](../docs/)*
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173 — proxy /api → http://localhost:8080 (run backend too)
+npm run dev          # port from DEV_SERVER_PORT in .env (default 5173); proxy /api → API_PROXY_TARGET
 npm run build
 npm run preview      # to test build against API, set VITE_API_BASE_URL in .env.production
 ```
