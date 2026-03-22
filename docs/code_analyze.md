@@ -68,46 +68,44 @@
 | 102–110 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับหน้าสอบ (ไม่เคลียร์ `questions`) |
 | 112–128 | `return` สิ่งที่คอมโพเนนต์ใช้ได้ |
 
-### 6. หน้าทำข้อสอบ — `frontend/src/views/ExamView.vue` (**212 บรรทัด**)
+### 6. หน้าทำข้อสอบ — `frontend/src/views/ExamView.vue` (**260 บรรทัด**)
 
 ไฟล์เดียวกับโค้ดใน repo — แบ่งตามบล็อก `<script>` / `<template>` / `<style>`
 
-#### `<script setup>` — บรรทัด 1–78
+#### `<script setup>` — บรรทัด 1–112
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 1–4 | import `ref`, `computed`, `onMounted` จาก Vue · `storeToRefs` จาก Pinia · `useExamStore` |
+| 1–4 | import `ref`, `computed`, `onMounted`, `nextTick` จาก Vue · `storeToRefs` จาก Pinia · `useExamStore` |
 | 6–7 | สร้าง `exam` · `storeToRefs(exam)` → `candidateName`, `questions`, `answers`, `loadState`, `loadError` |
-| 9 | `formError = ref('')` สำหรับ validation ฝั่งฟอร์มและข้อความ error ตอนส่งข้อสอบ |
-| 11–13 | `onMounted(() => exam.loadQuestions())` |
-| 15–18 | `allAnswered` (computed) — ถ้าไม่มีข้อ return false · ไม่เช่นนั้นทุกข้อต้องมีค่าใน `answers` |
-| 20–22 | `isSelected(questionId, optionId)` — เทียบ `answers[questionId] === optionId` |
-| 24–26 | `selectOption` → `exam.setAnswer(questionId, optionId)` |
-| 28–47 | `handleSubmit` — เคลียร์ `formError` · ตรวจชื่อไม่ว่าง · ตรวจ `allAnswered` · `await exam.submitExam()` · `catch` ตั้งข้อความไทยเมื่อ network/TypeError |
-| 49–59 | `optionCardClasses` — คืน array คลาส Tailwind สำหรับการ์ดตัวเลือก (border, พื้นหลัง, เงาเมื่อเลือก) |
-| 61–69 | `indicatorClasses` — วงกลมตัวอักษรตัวเลือก (A/B/C) |
-| 71–77 | `optionTextClasses` — ข้อความคำอธิบายตัวเลือก |
-| 78 | ปิด `</script>` |
+| 9–21 | `formError` · `showUnansweredHighlight` (Submit ไม่ครบ → ไฮไลต์ทุกข้อที่ยังไม่ตอบ) · `sectionRefs` + `setSectionRef` สำหรับ `scrollIntoView` |
+| 23–25 | `onMounted(() => exam.loadQuestions())` |
+| 27–30 | `allAnswered` (computed) — ถ้าไม่มีข้อ return false · ไม่เช่นนั้นทุกข้อต้องมีค่าใน `answers` |
+| 32–38 | `isSelected` · `selectOption` → `exam.setAnswer` |
+| 40–52 | `isQuestionUnanswered` · `questionSectionClasses` — กรอบแดง/พื้นหลังเมื่อ `showUnansweredHighlight` และข้อนั้นยังไม่ตอบ |
+| 54–81 | `handleSubmit` — เคลียร์ `formError` / `showUnansweredHighlight` · ตรวจชื่อ · ถ้าไม่ครบ: ตั้งข้อความ + เปิดไฮไลต์ · `nextTick` แล้ว `scrollIntoView` ไปข้อแรกที่ว่าง · ไม่เช่นนั้น `submitExam` + `catch` network |
+| 83–111 | `optionCardClasses` / `indicatorClasses` / `optionTextClasses` — การ์ดตัวเลือก |
+| 112 | ปิด `</script>` |
 
-#### `<template>` — บรรทัด 80–202
+#### `<template>` — บรรทัด 114–250
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 80–82 | root `div` (`min-h-screen`, `bg-background`) · เปิด `<main>` คอนเทนเนอร์ `max-w-3xl`, padding |
-| 84–90 | `v-if="loadError"` — กล่องแจ้งเตือน (amber) แสดง `loadError`, `role="status"` |
-| 92–127 | บล็อกหัวหน้า + ชื่อผู้สอบ: badge “Live Session”, หัวข้อ “IT 10-1 Exam”, คำอธิบายโมดูล · `label` + `input#candidate-name` `v-model="candidateName"` · เส้นใต้เมื่อ focus |
-| 129–138 | `v-if="loadState === 'loading'"` — spinner + ข้อความ “กำลังโหลดข้อสอบจากเซิร์ฟเวอร์…” |
-| 141–173 | `v-else` + `space-y-12` — `v-for="(q, index) in questions"` แต่ละ `section`: หมายเลขข้อ · `q.prompt` / `q.subtitle` · `v-for="opt in q.options"` ปุ่ม `button` เรียก `selectOption` · ผูกคลาสจาก `optionCardClasses` / `indicatorClasses` / `optionTextClasses` |
-| 175–192 | `v-if="loadState !== 'loading'"` — แสดง `formError` (สีแดง) · ปุ่ม Submit (`:disabled="questions.length === 0"`) · `@click="handleSubmit"` · gradient + `material-symbols-outlined` arrow |
-| 193 | ปิด `</main>` |
-| 195–201 | `div` ตกแต่งพื้นหลังแบบ fixed + blur (มุมขวาบน / ซ้ายล่าง) |
-| 202 | ปิด root `</div>` |
+| 115–117 | root `div` · เปิด `<main>` คอนเทนเนอร์ `max-w-3xl`, padding |
+| 118–124 | `v-if="loadError"` — กล่องแจ้งเตือน (amber), `role="status"` |
+| 125–161 | หัวหน้า + ชื่อผู้สอบ · `input#candidate-name` `v-model="candidateName"` |
+| 163–172 | `v-if="loadState === 'loading'"` — spinner + ข้อความโหลด |
+| 175–217 | `v-else` — `v-for` แต่ละ `section`: `:id="'question-' + q.id"` · `:ref` callback · `:class="questionSectionClasses(q.id)"` · ตัวเลือก · `v-if="showUnansweredHighlight && answers[q.id] == null"` ข้อความแดงในการ์ด |
+| 219–240 | `v-if="loadState !== 'loading'"` — `formError` (`animate-pulse`) · ปุ่ม Submit |
+| 241 | ปิด `</main>` |
+| 243–249 | `div` ตกแต่งพื้นหลัง fixed + blur |
+| 250 | ปิด root `</div>` |
 
-#### `<style scoped>` — บรรทัด 204–212
+#### `<style scoped>` — บรรทัด 252–260
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 204–212 | `.material-symbols-outlined` — ตั้ง `font-variation-settings` (FILL, wght, GRAD, opsz) |
+| 252–260 | `.material-symbols-outlined` — ตั้ง `font-variation-settings` (FILL, wght, GRAD, opsz) |
 
 ### 7. หน้าผล — `frontend/src/views/ResultView.vue`
 

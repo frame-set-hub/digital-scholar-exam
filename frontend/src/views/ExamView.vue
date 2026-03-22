@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
@@ -7,6 +7,18 @@ const exam = useExamStore()
 const { candidateName, questions, answers, loadState, loadError } = storeToRefs(exam)
 
 const formError = ref('')
+/** หลัง submit ไม่ครบ — ข้อที่ยังไม่ตอบทุกข้อแสดงกรอบแดง (scroll ไปข้อแรกที่ว่าง) */
+const showUnansweredHighlight = ref(false)
+/** DOM ของแต่ละ section ข้อ (สำหรับ scrollIntoView) */
+const sectionRefs = {}
+
+function setSectionRef(questionId, el) {
+  if (el) {
+    sectionRefs[questionId] = el
+  } else {
+    delete sectionRefs[questionId]
+  }
+}
 
 onMounted(() => {
   exam.loadQuestions()
@@ -25,8 +37,23 @@ function selectOption(questionId, optionId) {
   exam.setAnswer(questionId, optionId)
 }
 
+function isQuestionUnanswered(questionId) {
+  return answers.value[questionId] == null
+}
+
+function questionSectionClasses(questionId) {
+  const invalid = showUnansweredHighlight.value && isQuestionUnanswered(questionId)
+  return [
+    'rounded-3xl border p-8 shadow-[0_8px_32px_rgba(25,28,30,0.04)] md:p-12',
+    invalid
+      ? 'border-red-500 bg-red-50/80 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]'
+      : 'border-outline-variant/10 bg-surface-container-lowest',
+  ]
+}
+
 async function handleSubmit() {
   formError.value = ''
+  showUnansweredHighlight.value = false
   const name = candidateName.value.trim()
   if (!name) {
     formError.value = 'กรุณากรอกชื่อผู้สอบ'
@@ -34,6 +61,13 @@ async function handleSubmit() {
   }
   if (!allAnswered.value) {
     formError.value = 'กรุณาตอบให้ครบทุกข้อ'
+    showUnansweredHighlight.value = true
+    const firstUnanswered = questions.value.find((q) => answers.value[q.id] == null)
+    if (firstUnanswered) {
+      await nextTick()
+      const el = sectionRefs[firstUnanswered.id]
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
     return
   }
   try {
@@ -141,8 +175,10 @@ function optionTextClasses(questionId, optionId) {
       <div v-else class="space-y-12">
         <section
           v-for="(q, index) in questions"
+          :id="'question-' + q.id"
           :key="q.id"
-          class="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-[0_8px_32px_rgba(25,28,30,0.04)] md:p-12"
+          :ref="(el) => setSectionRef(q.id, el)"
+          :class="questionSectionClasses(q.id)"
         >
           <div class="mb-8 flex items-start gap-4">
             <span
@@ -169,12 +205,24 @@ function optionTextClasses(questionId, optionId) {
               <span :class="optionTextClasses(q.id, opt.id)">{{ opt.text }}</span>
             </button>
           </div>
+          <div
+            v-if="showUnansweredHighlight && answers[q.id] == null"
+            class="mt-6 flex items-center gap-2 font-sans text-sm font-bold text-red-600"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
+            โปรดเลือกคำตอบก่อนดำเนินการต่อ
+          </div>
         </section>
       </div>
 
       <!-- Submit -->
       <div v-if="loadState !== 'loading'" class="mt-16 flex flex-col items-center gap-6">
-        <p v-if="formError" class="text-center text-sm font-medium text-red-600" role="alert">
+        <p
+          v-if="formError"
+          class="animate-pulse text-center text-sm font-bold text-red-600"
+          role="alert"
+        >
           {{ formError }}
         </p>
         <button

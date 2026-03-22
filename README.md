@@ -34,6 +34,8 @@ npm install && npm run dev
 
 รัน **ทั้งสองพร้อมกัน** — หน้าเว็บโหลดข้อสอบจาก `GET /api/questions` ส่งคำตอบด้วย `POST /api/submit` และหน้า Leaderboard ดึง `GET /api/leaderboard` (ต้องรัน backend ให้พร้อม)
 
+**หน้าสอบ (`ExamView`):** ถ้ากด Submit แต่ยังตอบไม่ครบ ระบบจะแสดงข้อความเตือนใต้ปุ่ม ไฮไลต์กรอบแดงทุกข้อที่ยังไม่เลือกคำตอบ (พร้อมข้อความในการ์ด) และเลื่อนหน้าไปที่ข้อแรกที่ยังว่างแบบ smooth scroll
+
 ### ข้อมูล mock สำหรับทดสอบ Leaderboard
 
 ฐานข้อมูล SQLite อยู่ที่ `backend/data/exam.db` (สร้างตอนรัน API — อยู่ใน `.gitignore`)

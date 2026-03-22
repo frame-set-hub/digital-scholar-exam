@@ -35,7 +35,7 @@
 3. **สำเร็จ:** เก็บรายการคำถามใน Pinia  
    **ล้มเหลว:** เคลียร์ `questions`, ตั้ง `loadError`, แสดงข้อความแจ้งเตือน — ไม่มีข้อสอบในเครื่อง
 4. ผู้ใช้กรอกชื่อและเลือกคำตอบ → `setAnswer` อัปเดต `answers`
-5. กดส่ง → ตรวจชื่อและครบทุกข้อ → **`POST /api/submit`** พร้อม `{ candidateName, answers }` → ได้ `score` จากเซิร์ฟเวอร์ → นำทางไป `/result`
+5. กดส่ง → ตรวจชื่อและครบทุกข้อ · **ถ้ายังไม่ครบ:** แสดงข้อความใต้ปุ่ม ไฮไลต์กรอบแดงทุกข้อที่ยังไม่ตอบ และเลื่อนไปข้อแรกที่ว่าง (ไม่เรียก API) · **ถ้าครบ:** **`POST /api/submit`** พร้อม `{ candidateName, answers }` → ได้ `score` → นำทางไป `/result`
 6. `ResultView` แสดงชื่อและคะแนน → **View Leaderboard** → `/leaderboard` → `LeaderboardView` เรียก **`GET /api/leaderboard`** (`loadLeaderboard`) หรือ **Retake** → `resetExam()`
 7. `LeaderboardView` ปุ่ม **Back to Exam** → `resetExam()` (เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับ `/` — ไม่เคลียร์รายการข้อเพื่อลดการเรียก `GET /api/questions` ซ้ำ)
 
