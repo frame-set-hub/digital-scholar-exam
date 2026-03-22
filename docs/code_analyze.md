@@ -60,7 +60,7 @@
 | 24 | `totalQuestions` = `questions.length` |
 | 26–28 | `setAnswer` |
 | 34–65 | `loadQuestions` — เฉพาะ `GET /api/questions`; ล้มเหลวเคลียร์ `questions` + ตั้ง `loadError` |
-| 67–90 | `loadLeaderboard` — `GET /api/leaderboard` พร้อม `?forCandidate=` เมื่อมีชื่อใน store → `entries` + `yourEntry` |
+| 67–98 | `loadLeaderboard` — `resolveLeaderboardCandidateName()` (store หรือ `route.query.forCandidate`) → `GET /api/leaderboard?forCandidate=` → `entries` + `yourEntry` |
 | 92–98 | `answersForSubmit` — คีย์เป็น string ตามสัญญา API |
 | 100–110 | `submitExam` — `POST /api/submit` แล้ว `router.push` ไป `result` |
 | 112–121 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard/`leaderboardYourEntry` กลับหน้าสอบ (คง `questions`) |

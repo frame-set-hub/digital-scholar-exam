@@ -1,17 +1,27 @@
 <script setup>
 import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
+const route = useRoute()
 const exam = useExamStore()
 const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry, candidateName } =
   storeToRefs(exam)
 
-/** แสดงคำแนะนำเมื่อไม่มีชื่อใน store จึงไม่มีการ์ด Me (API ไม่ได้รับ forCandidate) */
+function routeForCandidateQuery() {
+  const raw = route.query.forCandidate
+  const q = Array.isArray(raw) ? raw[0] : raw
+  return typeof q === 'string' ? q.trim() : ''
+}
+
+/** แสดงคำแนะนำเมื่อไม่มีชื่อสำหรับ forCandidate (ทั้ง store และ ?forCandidate=) */
 const showMeHint = computed(() => {
   if (leaderboardState.value !== 'idle') return false
   if (leaderboardYourEntry.value) return false
-  return !(candidateName.value || '').trim()
+  const fromStore = (candidateName.value || '').trim()
+  if (fromStore) return false
+  return !routeForCandidateQuery()
 })
 
 onMounted(() => {
@@ -78,11 +88,11 @@ function backToExam() {
           v-if="showMeHint"
           class="mx-auto mt-4 max-w-xl text-pretty text-xs leading-relaxed text-secondary"
         >
-          To show the <strong>Me</strong> card with your global rank, use your name on the exam and open Leaderboard from your result (or call
-          <code class="rounded bg-surface-container-highest px-1.5 py-0.5 font-mono text-[0.7rem] text-on-surface"
-            >/api/leaderboard?forCandidate=…</code
-          >
-          ).
+          To show the <strong>Me</strong> card, open Leaderboard from your result (adds
+          <code class="rounded bg-surface-container-highest px-1.5 py-0.5 font-mono text-[0.7rem]">?forCandidate=…</code>
+          to the URL) or visit
+          <code class="rounded bg-surface-container-highest px-1.5 py-0.5 font-mono text-[0.7rem]">/leaderboard?forCandidate=YourName</code>
+          .
         </p>
       </div>
 

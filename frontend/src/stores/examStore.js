@@ -64,13 +64,22 @@ export const useExamStore = defineStore('exam', () => {
     return loadQuestionsInflight
   }
 
-  /** GET /api/leaderboard — อันดับผู้สอบ (ไม่รวมคำตอบดิบ). ส่ง forCandidate เมื่อมีชื่อใน store เพื่อขอ yourEntry */
+  /** ชื่อสำหรับ yourEntry: Pinia ก่อน แล้ว fallback `?forCandidate=` บน URL (กัน refresh / แชร์ลิงก์) */
+  function resolveLeaderboardCandidateName() {
+    const fromStore = (candidateName.value && String(candidateName.value).trim()) || ''
+    if (fromStore) return fromStore
+    const raw = router.currentRoute.value.query.forCandidate
+    const q = Array.isArray(raw) ? raw[0] : raw
+    return typeof q === 'string' ? q.trim() : ''
+  }
+
+  /** GET /api/leaderboard — ส่ง forCandidate เมื่อมีชื่อจาก store หรือจาก query เพื่อขอ yourEntry */
   async function loadLeaderboard() {
     leaderboardState.value = 'loading'
     leaderboardError.value = null
     leaderboardYourEntry.value = null
     try {
-      const name = candidateName.value?.trim?.() || ''
+      const name = resolveLeaderboardCandidateName()
       const q =
         name.length > 0
           ? `?forCandidate=${encodeURIComponent(name)}`
