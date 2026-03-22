@@ -198,7 +198,7 @@ sequenceDiagram
 
 ```
 backend/
-├── cmd/api/main.go          # entry, SQLite path, AutoMigrate, seed, DI, Gin
+├── cmd/api/main.go          # entry, optional `.env` (PORT, DATABASE_DIR), SQLite, AutoMigrate, seed, DI, Gin
 ├── internal/
 │   ├── models/              # Question, Option, ExamResult
 │   ├── repository/          # GORM: GetQuestions, SaveExamResult, GetLeaderboard, migrate, seed

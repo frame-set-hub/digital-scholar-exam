@@ -6,10 +6,17 @@ REST API + SQLite — architecture, **handler → use case → repository** laye
 
 - Go 1.22+ (see `go.mod`)
 
+## Environment
+
+1. Copy [`.env.example`](./.env.example) to **`.env`** in `backend/` (or from repo root: `cp backend/.env.example backend/.env`)
+2. Optional keys: `PORT` (default `8080`), `DATABASE_DIR` (default `data/` under cwd). Values load from `.env` on startup via [`godotenv`](https://github.com/joho/godotenv); shell exports still win.
+
+**`.env` is gitignored** — only `.env.example` is committed.
+
 ## Commands
 
 ```bash
-go run ./cmd/api      # default :8080, or set PORT
+go run ./cmd/api      # :8080 or PORT from .env / environment
 go test ./... -count=1 -v
 ```
 

@@ -45,7 +45,7 @@ Order matters: **Pinia first**, then router so every view can use the store
 | 11–15 | `apiUrl(path)` joins base or uses relative `/api/...` |
 | 17–38 | `fetchJSON` — sets `Content-Type` when body exists, `JSON.parse`, throws on `!res.ok` |
 
-Together with **proxy** in `frontend/vite.config.js`: `server.proxy['/api']` forwards to `API_PROXY_TARGET` (default `http://localhost:8080`)
+Together with **proxy** in `frontend/vite.config.js`: `server.port` from `DEV_SERVER_PORT` in `.env` (default `5173`); `server.proxy['/api']` forwards to `API_PROXY_TARGET` (default `http://localhost:8080`)
 
 ### 5. Shared state — `frontend/src/stores/examStore.js`
 
@@ -137,13 +137,14 @@ Same file as in the repo — split by `<script>` / `<template>` / `<style>` bloc
 
 | Lines (approx.) | What it does |
 |---------------------|--------|
-| 3–15 | Import: `handler`, `repository`, `usecase`, `gin` |
-| 17–21 | `main()` calls `run()` |
-| 23–31 | `resolveDataDir`, create data folder, path `exam.db` |
-| 33–42 | `OpenSQLite` → `AutoMigrate` → `EnsureSeedQuestions` |
-| 44–48 | DI: `NewQuestionGorm`, `NewExamResultGorm` → `usecase.NewExam` → `handler.NewExamHTTP` |
-| 50–58 | `gin.Default()`, `corsMiddleware`, `RegisterRoutes`, `Run` — port `:8080` or `PORT` |
-| 82–93 | `corsMiddleware` — allows `GET`/`POST`/`OPTIONS` for `/api` |
+| 3–16 | Imports: `handler`, `repository`, `usecase`, `gin`, `godotenv` |
+| 18–22 | `main()` calls `run()` |
+| 24–25 | `godotenv.Load()` — optional `backend/.env` (`PORT`, `DATABASE_DIR`) |
+| 27–34 | `resolveDataDir` inputs, `MkdirAll`, DSN `exam.db` |
+| 36–45 | `OpenSQLite` → `AutoMigrate` → `EnsureSeedQuestions` |
+| 47–51 | DI: `NewQuestionGorm`, `NewExamResultGorm` → `usecase.NewExam` → `handler.NewExamHTTP` |
+| 53–61 | `gin.Default()`, `corsMiddleware`, `RegisterRoutes`, `Run` — `:8080` or `PORT` from env / `.env` |
+| 85–96 | `corsMiddleware` — allows `GET`/`POST`/`OPTIONS` for `/api` |
 
 ### 10. Route registration — `backend/internal/handler/router.go`
 

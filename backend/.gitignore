@@ -1,4 +1,6 @@
 /data/
+.env
+!.env.example
 *.db
 *.db-shm
 *.db-wal

@@ -16,20 +16,27 @@ This matches common monorepo practice: **repo home = navigation**, details live 
 
 ## Quick start
 
-Open **two terminals** (or run the backend first, then the frontend)
+### One-time: copy env templates
 
-**Backend** (port 8080):
+From the **repository root** (defaults work for local dev — edit only if you change ports or API URLs):
+
+```bash
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
+```
+
+Then open **two terminals** (or run the backend first, then the frontend).
+
+**Backend** — loads optional `backend/.env` (`PORT`, `DATABASE_DIR`); default listen **:8080**:
 
 ```bash
 cd backend && go run ./cmd/api
 ```
 
-**Frontend** (port 5173 — proxies `/api` to the backend per `API_PROXY_TARGET` in `frontend/.env`):
+**Frontend** — reads `frontend/.env` (`DEV_SERVER_PORT`, `API_PROXY_TARGET`, `VITE_API_BASE_URL`); default dev URL **http://localhost:5173**, proxies `/api` → backend:
 
 ```bash
-cd frontend
-cp .env.example .env   # first time — .env is gitignored
-npm install && npm run dev
+cd frontend && npm install && npm run dev
 ```
 
 Run **both** — the app loads questions via `GET /api/questions`, submits with `POST /api/submit`, and the Leaderboard page fetches `GET /api/leaderboard` (the backend must be running).
