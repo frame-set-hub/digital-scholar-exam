@@ -10,6 +10,8 @@ export const useExamStore = defineStore('exam', () => {
   const score = ref(null)
 
   const leaderboard = ref([])
+  /** เมื่อโหลดพร้อม `forCandidate` — อันดับรวม + inTopList (อยู่ในช่วง top N ของ response หรือไม่) */
+  const leaderboardYourEntry = ref(null)
   const leaderboardState = ref('idle') // idle | loading | error
   const leaderboardError = ref(null)
 
@@ -62,16 +64,24 @@ export const useExamStore = defineStore('exam', () => {
     return loadQuestionsInflight
   }
 
-  /** GET /api/leaderboard — อันดับผู้สอบ (ไม่รวมคำตอบดิบ) */
+  /** GET /api/leaderboard — อันดับผู้สอบ (ไม่รวมคำตอบดิบ). ส่ง forCandidate เมื่อมีชื่อใน store เพื่อขอ yourEntry */
   async function loadLeaderboard() {
     leaderboardState.value = 'loading'
     leaderboardError.value = null
+    leaderboardYourEntry.value = null
     try {
-      const data = await fetchJSON(apiUrl('/api/leaderboard'))
+      const name = candidateName.value?.trim?.() || ''
+      const q =
+        name.length > 0
+          ? `?forCandidate=${encodeURIComponent(name)}`
+          : ''
+      const data = await fetchJSON(apiUrl(`/api/leaderboard${q}`))
       leaderboard.value = Array.isArray(data.entries) ? data.entries : []
+      leaderboardYourEntry.value = data.yourEntry ?? null
       leaderboardState.value = 'idle'
     } catch (e) {
       leaderboard.value = []
+      leaderboardYourEntry.value = null
       leaderboardError.value =
         e?.message ||
         'ไม่สามารถโหลดกระดานจัดอันดับ — ตรวจสอบว่า backend รันที่ :8080'
@@ -104,6 +114,7 @@ export const useExamStore = defineStore('exam', () => {
     answers.value = {}
     score.value = null
     leaderboard.value = []
+    leaderboardYourEntry.value = null
     leaderboardState.value = 'idle'
     leaderboardError.value = null
     router.push({ name: 'exam' })
@@ -115,6 +126,7 @@ export const useExamStore = defineStore('exam', () => {
     answers,
     score,
     leaderboard,
+    leaderboardYourEntry,
     leaderboardState,
     leaderboardError,
     totalQuestions,

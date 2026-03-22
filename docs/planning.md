@@ -27,14 +27,12 @@
 
 ### Leaderboard: ตำแหน่งของคุณเมื่ออยู่นอก top 20
 
-**ปัญหา:** `GET /api/leaderboard` คืนได้สูงสุด **20** แถว (ดู [`api.md`](./api.md)) UI แสดงเฉพาะแถวเหล่านั้น — ถ้าอันดับผู้สอบเป็น **21+** จะไม่เห็นแถวของตัวเองบน `/leaderboard` (เช่น ผ่าน Vite dev `http://localhost:5173/api/leaderboard` ที่ proxy ไป backend)
+**ปัญหาเดิม:** `GET /api/leaderboard` คืนได้สูงสุด **20** แถว — ถ้าอันดับรวมเป็น **21+** จะไม่เห็นตัวเองในรายการ
 
-**ทิศทาง (ลงมือทำภายหลัง):**
+**สถานะปัจจุบัน (ทำแล้ว):**
 
-- **API:** เช่น query `?name=` หรือ `GET /api/leaderboard/me` หลัง submit (ต้องมีตัวตนที่เสถียร — ตอนนี้มีแค่สตริง `candidateName`) เพื่อคืน `{ rank, candidateName, score, total }` หรือรวม “แถวของคุณ” ใน response รายการ
-- **FE:** `LeaderboardView` — แสดง top 20 พร้อมแถบ **“ตำแหน่งของคุณ”** (อันดับ, คะแนน) เมื่อผู้ใช้ไม่อยู่ในรายการ top (ต้องส่งชื่อจาก flow ผลหรือ session)
-
-ติดตามใน progress: [`../execute.md`](../execute.md) (Backlog)
+- **API:** query `forCandidate` — อันดับรวมคำนวณจาก `exam_results` แบบเดียวกับการจัดอันดับ (score DESC, created_at ASC); response ฟิลด์ `yourEntry` พร้อม `inTopList` — ดู [`api.md`](./api.md)
+- **FE:** `loadLeaderboard()` ส่ง `forCandidate` เมื่อมี `candidateName` ใน Pinia; `LeaderboardView` แสดงแถบ **Your position** เมื่อ `yourEntry` มี `inTopList: false`
 
 ## เป้าหมายระยะยาว
 

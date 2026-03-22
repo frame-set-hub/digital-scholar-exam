@@ -4,7 +4,14 @@ import { storeToRefs } from 'pinia'
 import { useExamStore } from '@/stores/examStore'
 
 const exam = useExamStore()
-const { leaderboard, leaderboardState, leaderboardError } = storeToRefs(exam)
+const { leaderboard, leaderboardState, leaderboardError, leaderboardYourEntry } = storeToRefs(exam)
+
+/** แสดงแถบเมื่อมีอันดับรวมแต่ไม่อยู่ในช่วง top N ที่ API ส่งมา (ค่าเริ่ม N=20) */
+const showYourPositionStrip = computed(() => {
+  const y = leaderboardYourEntry.value
+  if (!y || y.inTopList) return false
+  return leaderboard.value.length > 0
+})
 
 onMounted(() => {
   exam.loadLeaderboard()
@@ -207,6 +214,23 @@ function backToExam() {
               <p class="text-[10px] font-bold uppercase tracking-tighter text-secondary">Points Scored</p>
             </div>
           </div>
+        </div>
+
+        <div
+          v-if="showYourPositionStrip && leaderboardYourEntry"
+          class="mx-auto mb-8 max-w-3xl rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4 sm:px-6 sm:py-5"
+          role="status"
+        >
+          <p class="text-center font-display text-sm font-bold uppercase tracking-wide text-primary sm:text-base">
+            Your position
+          </p>
+          <p class="mt-2 text-center text-base font-semibold text-on-surface sm:text-lg">
+            Rank <span class="font-black text-primary">#{{ leaderboardYourEntry.rank }}</span>
+            · {{ formatScore(leaderboardYourEntry) }} points
+          </p>
+          <p class="mt-2 text-center text-xs text-secondary sm:text-sm">
+            Global ranking — the list above shows at most 20 entries.
+          </p>
         </div>
 
         <div class="mt-10 flex justify-center px-1 sm:mt-14">

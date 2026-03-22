@@ -52,19 +52,19 @@
 | บรรทัด (โดยประมาณ) | ทำอะไร |
 |---------------------|--------|
 | 1–4 | import Pinia, Vue `ref`/`computed`, `router`, `apiUrl`/`fetchJSON` |
-| 6–129 | `defineStore('exam', () => { ... })` — ไม่มีข้อสอบ mock ใน bundle; ดึงจาก API เท่านั้น |
+| 6–141 | `defineStore('exam', () => { ... })` — ไม่มีข้อสอบ mock ใน bundle; ดึงจาก API เท่านั้น |
 | 7–10 | state: `candidateName`, `questions`, `answers`, `score` |
-| 12–14 | `leaderboard`, `leaderboardState`, `leaderboardError` |
-| 16–17 | `loadState`, `loadError` |
-| 19–20 | `loadQuestionsInflight` กันยิง GET ซ้ำพร้อมกัน |
-| 22 | `totalQuestions` = `questions.length` |
-| 24–26 | `setAnswer` |
-| 32–63 | `loadQuestions` — เฉพาะ `GET /api/questions`; ล้มเหลวเคลียร์ `questions` + ตั้ง `loadError` |
-| 65–80 | `loadLeaderboard` — `GET /api/leaderboard` → เก็บ `entries` ใน `leaderboard` |
-| 82–88 | `answersForSubmit` — คีย์เป็น string ตามสัญญา API |
-| 90–100 | `submitExam` — `POST /api/submit` แล้ว `router.push` ไป `result` |
-| 102–110 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard กลับหน้าสอบ (คง `questions`) |
-| 112–128 | `return` — สิ่งที่คอมโพเนนต์ใช้ |
+| 12–16 | `leaderboard`, `leaderboardYourEntry`, `leaderboardState`, `leaderboardError` |
+| 18–19 | `loadState`, `loadError` |
+| 21–22 | `loadQuestionsInflight` กันยิง GET ซ้ำพร้อมกัน |
+| 24 | `totalQuestions` = `questions.length` |
+| 26–28 | `setAnswer` |
+| 34–65 | `loadQuestions` — เฉพาะ `GET /api/questions`; ล้มเหลวเคลียร์ `questions` + ตั้ง `loadError` |
+| 67–90 | `loadLeaderboard` — `GET /api/leaderboard` พร้อม `?forCandidate=` เมื่อมีชื่อใน store → `entries` + `yourEntry` |
+| 92–98 | `answersForSubmit` — คีย์เป็น string ตามสัญญา API |
+| 100–110 | `submitExam` — `POST /api/submit` แล้ว `router.push` ไป `result` |
+| 112–121 | `resetExam` — เคลียร์ชื่อ/คำตอบ/คะแนน/leaderboard/`leaderboardYourEntry` กลับหน้าสอบ (คง `questions`) |
+| 123–140 | `return` — สิ่งที่คอมโพเนนต์ใช้ |
 
 ### 6. หน้าสอบ — `frontend/src/views/ExamView.vue` (**~330 บรรทัด**)
 
@@ -108,16 +108,17 @@
 | | 27–33 | `retake` → `resetExam()` · `goLeaderboard` → `router.push` ไป `leaderboard` |
 | `<template>` | ~36+ | ชื่อ, `score / totalQuestions`, ปุ่ม View Leaderboard + Retake Exam |
 
-### 8. หน้า Leaderboard — `frontend/src/views/LeaderboardView.vue`
+### 8. หน้า Leaderboard — `frontend/src/views/LeaderboardView.vue` (**~318 บรรทัด**)
 
 | ส่วน | บรรทัด (โดยประมาณ) | ทำอะไร |
 |------|---------------------|--------|
 | `<script setup>` | 1–4 | import Vue, Pinia, `useExamStore` |
-| | 6–8 | `storeToRefs` — `leaderboard`, `leaderboardState`, `leaderboardError` |
-| | 10–12 | `onMounted` → `loadLeaderboard()` |
-| | 14–18 | computed: อันดับ 1–3 และแถวที่เหลือ (`slice(3)`) |
-| | 20–34 | `formatScore` / `formatDate` · `backToExam` → `resetExam()` |
-| `<template>` | ~35–230 | Header + สถานะโหลด/error/ว่าง · podium (1 / 2 / 3+) · รายการอันดับ 4+ ด้วย `v-for` · ปุ่ม Back to Exam |
+| | 6–8 | `storeToRefs` — `leaderboard`, `leaderboardState`, `leaderboardError`, `leaderboardYourEntry` |
+| | 10–14 | `showYourPositionStrip` — แสดงเมื่อมี `yourEntry` และ `!inTopList` และมีรายการ |
+| | 16–18 | `onMounted` → `loadLeaderboard()` |
+| | 20–23 | computed: อันดับ 1–3 และแถวที่เหลือ (`slice(3)`) |
+| | 25–39 | `formatScore` / `formatDate` · `backToExam` → `resetExam()` |
+| `<template>` | ~45+ | Header + สถานะโหลด/error/ว่าง · podium · รายการรองลงมา · แถบ **Your position** เมื่ออยู่นอก top N · ปุ่ม Back to Exam |
 | `<style scoped>` | ท้ายไฟล์ | gradient อันดับ 1–3, Material Symbols |
 
 ---
@@ -151,7 +152,7 @@
 | 22–29 | `GetQuestions` → use case → `{ "questions": ... }` |
 | 32–36 | `SubmitBody` — `candidateName`, `answers` |
 | 38–64 | `Submit` — bind JSON, บังคับ `answers` ไม่ว่าง → `SubmitExam` → `errors.Is` แมป `ErrCandidateNameRequired` → 400, `ErrDuplicateCandidateName` → 409, อื่น → 500 |
-| 66+ | `GetLeaderboard` — query `limit` (optional) → `{ "entries": ... }` |
+| 66–85 | `GetLeaderboard` — query `limit`, `forCandidate` → `{ "entries": ... }` และอาจมี `yourEntry` |
 
 ### 12. กฎธุรกิจ — `backend/internal/usecase/exam_usecase.go` + `errors.go`
 
@@ -162,14 +163,14 @@
 | 23–52 | DTO สำหรับ API + `SubmitResponse` + `LeaderboardEntryDTO` |
 | 54–74 | `GetQuestions` — map `Question` → DTO **ไม่มีเฉลย** |
 | 76–118 | `SubmitExam` — `strings.TrimSpace` ชื่อ → ว่าง → error · โหลดคำถาม → `ScoreAnswers` → `CandidateNameExists` → ซ้ำ → error · สร้าง `ExamResult` + `SaveExamResult` |
-| 120+ | `GetLeaderboard` — โหลดจาก store → ใส่ `rank`, จัดรูป `CreatedAt` เป็น RFC3339 |
+| 132–180 | `GetLeaderboard` — โหลดจาก store → ใส่ `rank`, จัดรูป `CreatedAt`; ถ้ามี `forCandidate` → `CandidateRank` → `LeaderboardYourEntryDTO` (`inTopList`) |
 | | `normalizeLeaderboardLimit` · `ScoreAnswers` |
 
 ### 13. Ports ของ use case — `backend/internal/usecase/ports.go`
 
 | บรรทัด | ทำอะไร |
 |--------|--------|
-| 9–18 | `QuestionStore`, `ExamResultStore` (`CandidateNameExists`, `SaveExamResult`, `GetLeaderboard`) — repository implement |
+| 9–21 | `QuestionStore`, `ExamResultStore` (`CandidateNameExists`, `SaveExamResult`, `GetLeaderboard`, `CandidateRank`) — repository implement |
 
 ### 14. โมเดล DB — `backend/internal/models/question.go`, `exam_result.go`
 
@@ -184,7 +185,7 @@
 | `migrate.go` | `AutoMigrate` Question, Option, ExamResult |
 | `seed.go` | `EnsureSeedQuestions`, `seedQuestions()` — ข้อสอบตัวอย่างสำหรับ API |
 | `question_gorm.go` | `GetQuestions` — `Preload("Options")`, `Order("sort_order")` |
-| `exam_result_gorm.go` | `CandidateNameExists` — `WHERE candidate_name = ?` · `SaveExamResult` — `Create` · `GetLeaderboard` — `ORDER BY score DESC`, `created_at ASC`, `Limit` |
+| `exam_result_gorm.go` | `CandidateNameExists` — `WHERE candidate_name = ?` · `SaveExamResult` — `Create` · `GetLeaderboard` — `ORDER BY score DESC`, `created_at ASC`, `Limit` · `CandidateRank` — นับแถวที่ดีกว่าแถวของชื่อนั้น + 1 |
 
 ### 16. ทดสอบ use case — `backend/internal/usecase/exam_usecase_test.go`
 

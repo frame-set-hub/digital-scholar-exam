@@ -49,8 +49,8 @@
 | HTTP | `handler.ExamHTTP` | รับ request, bind JSON, สถานะ HTTP |
 | กฎธุรกิจ | `usecase.Exam` | `GetQuestions`: โหลดจาก store → map เป็น DTO **ไม่มีเฉลย** |
 | | | `SubmitExam`: trim ชื่อ → `CandidateNameExists` (ซ้ำแล้ว error) → โหลดคำถาม → `ScoreAnswers` → สร้าง `ExamResult` → `SaveExamResult` |
-| | | `GetLeaderboard`: โหลด `ExamResult` จาก store → map เป็น `LeaderboardEntryDTO` (ไม่รวม `answers`) |
-| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite — `GetLeaderboard` เรียง `score DESC`, `created_at ASC` |
+| | | `GetLeaderboard`: โหลด `ExamResult` จาก store → map เป็น `LeaderboardEntryDTO` (ไม่รวม `answers`); ถ้ามี `forCandidate` → `CandidateRank` คำนวณอันดับรวม → `yourEntry` |
+| ข้อมูล | `repository.QuestionGorm` / `ExamResultGorm` | GORM อ่าน/เขียน SQLite — `GetLeaderboard` เรียง `score DESC`, `created_at ASC`; `CandidateRank` นับแถวที่ “ดีกว่า” สำหรับชื่อที่กำหนด |
 
 ## Data flow
 
@@ -69,8 +69,8 @@
 **Leaderboard (GET)**
 
 - **DB:** อ่าน `exam_results` — เรียงคะแนนสูงสุดก่อน; ถ้าคะแนนเท่ากันให้ `created_at` เก่าก่อน
-- **Repository** → **Use case** ใส่ `rank` และตัดข้อมูลลึก → **Handler** → JSON `{ "entries": [...] }`
-- **Frontend** เก็บใน `examStore.leaderboard` สำหรับ `LeaderboardView`
+- **Repository** → **Use case** ใส่ `rank` ในรายการ top N และถ้ามี `forCandidate` คำนวณอันดับรวม → **Handler** → JSON `{ "entries": [...] }` และอาจมี `yourEntry`
+- **Frontend** เก็บใน `examStore.leaderboard` กับ `leaderboardYourEntry` สำหรับ `LeaderboardView`
 
 ## สรุปเทียบสัญญา API (`api.md`)
 

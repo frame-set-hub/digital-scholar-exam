@@ -13,7 +13,10 @@ Base URL (dev): `http://localhost:8080`
 ## GET `/api/leaderboard`
 
 - Query (optional): `limit` — จำนวนอันดับสูงสุด (ค่าเริ่มต้น 20, สูงสุด 20)
-- Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
+- Query (optional): `forCandidate` — ชื่อผู้สอบ (URL-encoded) เพื่อขอ **อันดับรวม** ของชื่อนั้นใน response ฟิลด์ `yourEntry` (เมื่อมีผลใน DB)
+- Response ตัวอย่าง: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`  
+  เมื่อมี `forCandidate` และพบผล: เพิ่ม `yourEntry`: `{ "rank", "candidateName", "score", "total", "createdAt", "inTopList" }`  
+  — `inTopList` = `true` เมื่ออันดับรวมอยู่ในช่วง `limit` แถวแรก (เทียบกับรายการที่ส่งใน `entries`); `false` เมื่ออยู่นอกช่วง (เช่น อันดับ 21 ขึ้นไปเมื่อ `limit=20`)
 
 ## POST `/api/submit`
 

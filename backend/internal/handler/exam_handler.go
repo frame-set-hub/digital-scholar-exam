@@ -71,9 +71,14 @@ func (h *ExamHTTP) GetLeaderboard(c *gin.Context) {
 			limit = n
 		}
 	}
-	entries, err := h.uc.GetLeaderboard(c.Request.Context(), limit)
+	forCandidate := c.Query("forCandidate")
+	entries, your, err := h.uc.GetLeaderboard(c.Request.Context(), limit, forCandidate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load leaderboard"})
+		return
+	}
+	if your != nil {
+		c.JSON(http.StatusOK, gin.H{"entries": entries, "yourEntry": your})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"entries": entries})
