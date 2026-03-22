@@ -12,6 +12,7 @@
   - [Diagram — Frontend relationships](#diagram--frontend-relationships)
   - [Diagram — Backend request sequence](#diagram--backend-request-sequence)
   - [Frontend tech stack](#frontend-tech-stack)
+  - [Trade-off: Node.js + npm vs Bun (frontend tooling)](#trade-off-nodejs--npm-vs-bun-frontend-tooling)
   - [Backend tech stack](#backend-tech-stack)
   - [Why Vue 3 + Pinia](#why-vue-3--pinia)
   - [Why Go + Gin + SQLite](#why-go--gin--sqlite)
@@ -162,6 +163,23 @@ sequenceDiagram
 | **Tailwind CSS** | Utility-first styling, responsive, mobile-first |
 | **Vue Router** | Routes: `/` (exam), `/result` (score), `/leaderboard` (rankings) |
 | **Pinia** | State: candidate name, questions, answers, score, leaderboard — loads questions and rankings from API only |
+| **Node.js + npm** | Dev and build toolchain for Vite (see trade-off below) |
+
+## Trade-off: Node.js + npm vs Bun (frontend tooling)
+
+For **Vue 3 + Vite** in this repo, we standardize on **Node.js with npm** as the **safe default** for development and CI-style builds.
+
+**Bun** has gained strong traction as an **all-in-one** toolkit: very fast package installs (often an order of magnitude quicker than npm in typical projects), a single binary for runtime + package manager, and **native TypeScript** execution without a separate compile step for many workflows. Those advantages matter for teams that commit to Bun end-to-end.
+
+**Why Node + npm here anyway**
+
+- **De facto ecosystem alignment** — Vite, Vue 3 docs, and most community plugins assume **Node** first. Staying on Node minimizes integration surprises (“works on Bun only”) for a learning / assessment codebase.
+- **Stability over novelty** — A newer runtime can still hit **edge cases** (native dependencies, scripts that shell out to `node`, subtle semver behavior). Node is the conservative choice for **predictable** contributor and reviewer experience.
+- **Standard commands, no extra install** — Graders and new contributors can follow **`npm install`** / **`npm run dev`** with only Node LTS, as documented in the root [README.md](../README.md) and [frontend/README.md](../frontend/README.md).
+
+Node remains the **majority default** in many orgs, tutorials, and base images; that overlap lowers onboarding friction even though Bun is a legitimate option elsewhere.
+
+**Summary:** Bun trades a bit of **maximum speed and consolidation** for **broader assumed compatibility** when you pick Node + npm — for this project we prioritize the latter. Teams comfortable owning compatibility checks may still adopt Bun locally; the app does not depend on Bun-specific APIs.
 
 ## Backend tech stack
 
