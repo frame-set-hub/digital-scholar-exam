@@ -63,6 +63,12 @@ func (h *ExamHTTP) Submit(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// leaderboardResponse — yourEntry อยู่ก่อน entries ใน JSON เพื่อให้ดูด้วย curl | head ได้ (entries ยาวมาก)
+type leaderboardResponse struct {
+	YourEntry *usecase.LeaderboardYourEntryDTO `json:"yourEntry"`
+	Entries   []usecase.LeaderboardEntryDTO  `json:"entries"`
+}
+
 // GetLeaderboard GET /api/leaderboard
 func (h *ExamHTTP) GetLeaderboard(c *gin.Context) {
 	limit := 0
@@ -71,10 +77,12 @@ func (h *ExamHTTP) GetLeaderboard(c *gin.Context) {
 			limit = n
 		}
 	}
-	entries, err := h.uc.GetLeaderboard(c.Request.Context(), limit)
+	forCandidate := c.Query("forCandidate")
+	entries, your, err := h.uc.GetLeaderboard(c.Request.Context(), limit, forCandidate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load leaderboard"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"entries": entries})
+	// yourEntry เป็น null เมื่อไม่ส่ง forCandidate หรือไม่พบชื่อ — ส่งคีย์เสมอเพื่อให้ curl/FE ดีบักได้ชัด
+	c.JSON(http.StatusOK, leaderboardResponse{YourEntry: your, Entries: entries})
 }
