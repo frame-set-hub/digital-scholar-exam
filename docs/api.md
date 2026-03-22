@@ -13,7 +13,10 @@ Base URL (dev): `http://localhost:8080`
 ## GET `/api/leaderboard`
 
 - Query (optional): `limit` — max number of entries (default 20, max 20)
-- Example response: `{ "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
+- Query (optional): `forCandidate` — candidate name (URL-encoded) to include **`yourEntry`**: their **global rank** when a row exists in `exam_results`. If omitted, `yourEntry` is `null` (use e.g. `?forCandidate=mock_zero` in `curl` to get an object).
+- Response shape: `yourEntry` is listed **first** in JSON (before `entries`) for easier inspection with `curl | head`.
+- Example: `{ "yourEntry": null, "entries": [ { "rank", "candidateName", "score", "total", "createdAt" } ] }`
+- When `forCandidate` is present **and** a matching row exists: `yourEntry` is `{ "rank", "candidateName", "score", "total", "createdAt", "inTopList" }` — `inTopList` is `true` when global rank is within the first `limit` rows (same window as `entries`); `false` when rank is outside that window (e.g. rank 21 with `limit=20`).
 
 ## POST `/api/submit`
 
@@ -37,11 +40,11 @@ Base URL (dev): `http://localhost:8080`
 
 | HTTP | When |
 |------|------|
-| `400` | Body invalid, `answers` empty, or ชื่อว่างหลัง trim |
-| `409` | ชื่อผู้สอบซ้ำกับผลที่บันทึกแล้ว (`exam_results.candidate_name` เทียบตรงหลัง trim) |
-| `500` | ฐานข้อมูล / use case อื่น |
+| `400` | Body invalid, `answers` empty, or candidate name empty after trim |
+| `409` | Duplicate candidate name already stored in `exam_results` (exact match after trim) |
+| `500` | Database or other server error |
 
-ข้อความตัวอย่าง: `409` → `ชื่อนี้ถูกใช้ส่งข้อสอบแล้ว — กรุณาใช้ชื่ออื่น`
+Example `409` message: `ชื่อนี้ถูกใช้ส่งข้อสอบแล้ว — กรุณาใช้ชื่ออื่น` (Thai UI string from the API)
 
 Processing flow: [architech.md](./architech.md)
 
