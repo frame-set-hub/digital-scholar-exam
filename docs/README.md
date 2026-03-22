@@ -1,15 +1,15 @@
 # Documentation index
 
-โฟลเดอร์นี้เป็น **แหล่งเอกสารเชิงลึก (canonical)** ของโปรเจกต์ — ไม่ซ้ำกับ README ที่ root ซึ่งเป็นจุดเข้าและ Quick start
+This folder is the project's **canonical in-depth documentation** — it does not duplicate the root README, which is the entry point and quick start.
 
-| เอกสาร | เนื้อหา |
+| Document | Contents |
 |--------|---------|
-| [architech.md](./architech.md) | Tech stack, flow การทำงาน / usecase / ข้อมูล, diagram |
-| [api.md](./api.md) | **API Reference** — endpoint, ตัวอย่าง JSON |
-| [code_analyze.md](./code_analyze.md) | คู่มืออ่านโค้ดทีละไฟล์ — import, entrypoint, ช่วงบรรทัด (รวม `LeaderboardView` / `GET /api/leaderboard`) |
-| [planning.md](./planning.md) | แผนอนาคต, เป้าหมายระยะยาว (scale / deploy), ผสาน FE/BE |
-| [testing.md](./testing.md) | แนวทางทดสอบและบันทึกผล |
+| [architech.md](./architech.md) | Tech stack, flows / use cases / data, diagrams, **Node + npm vs Bun** (frontend tooling trade-off) |
+| [api.md](./api.md) | **API Reference** — endpoints, JSON examples |
+| [code_analyze.md](./code_analyze.md) | File-by-file reading guide — imports, entrypoints, line ranges (includes `LeaderboardView` / `GET /api/leaderboard`) |
+| [planning.md](./planning.md) | Future plans, long-term goals (scale / deploy), FE/BE alignment |
+| [testing.md](./testing.md) | Testing approach and run logs |
 
-โค้ด: [`../frontend/`](../frontend/) · [`../backend/`](../backend/) · Progress: [`../execute.md`](../execute.md)
+Code: [`../frontend/`](../frontend/) · [`../backend/`](../backend/) · Progress: [`../execute.md`](../execute.md)
 
-กฎซิงค์เอกสารกับโค้ด: [`../RULE.md`](../RULE.md)
+Doc–code sync: [`../RULE.md`](../RULE.md)
